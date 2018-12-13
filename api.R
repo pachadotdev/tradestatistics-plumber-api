@@ -1,5 +1,6 @@
 # api.R
 
+library(glue)
 library(RPostgreSQL)
 library(jsonlite)
 
@@ -32,30 +33,16 @@ function(msg=""){
 #* @param l Commodity code length
 #* @get /yrpc
 function(y = 2015, r = "chl", p = "chn", l = NULL) {
-  if (!is.null(l)) {
-    d <- dbGetQuery(con, 
-                    sprintf(
-                      "
-                      SELECT * FROM public.hs07_yrpc WHERE year = %s
-                      AND reporter_iso = '%s'
-                      AND partner_iso = '%s'
-                      ",
-                      y, r, p
-                    )
-    )
-  } else {
-    d <- dbGetQuery(con, 
-                    sprintf(
-                      "
-                      SELECT * FROM public.hs07_yrpc WHERE year = %s
-                      AND reporter_iso = '%s'
-                      AND partner_iso = '%s'
-                      AND commodity_code_length = '%s'
-                      ",
-                      y, r, p, l
-                    )
-    )   
-  }
+  query <- glue_sql("
+                SELECT *
+                FROM public.hs07_yrpc
+                WHERE year = {y}
+                AND reporter_iso = {r}
+                AND partner_iso = {p}
+                LIMIT 10
+                ", .con = con)
+
+  data <- dbGetQuery(con, query)
   
-  toJSON(d)
+  toJSON(data)
 }
