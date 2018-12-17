@@ -4,15 +4,11 @@
 
 library(glue)
 library(RPostgreSQL)
-library(jsonlite)
 
 # DB connection parameters ------------------------------------------------
 
+source("credentials.R")
 drv <- dbDriver("PostgreSQL")
-dbusr <- Sys.getenv("dbusr")
-dbpwd <- Sys.getenv("dbpwd")
-dbhost <- Sys.getenv("dbhost")
-dbname <- Sys.getenv("dbname")
 
 con <- dbConnect(
   drv, 
@@ -53,7 +49,7 @@ function() {
   
   data <- dbGetQuery(con, query)
   
-  toJSON(data)
+  return(data)
 }
 
 # Products ----------------------------------------------------------------
@@ -68,7 +64,7 @@ function() {
   
   data <- dbGetQuery(con, query)
   
-  toJSON(data)
+  return(data)
 }
 
 # YP ----------------------------------------------------------------------
@@ -107,7 +103,7 @@ function(y = NULL, p = NULL) {
   
   data <- dbGetQuery(con, query)
   
-  toJSON(data)
+  return(data)
 }
 
 # YPC ---------------------------------------------------------------------
@@ -146,7 +142,7 @@ function(y = NULL, p = NULL) {
   
   data <- dbGetQuery(con, query)
   
-  toJSON(data)
+  return(data)
 }
 
 # YR ----------------------------------------------------------------------
@@ -185,7 +181,7 @@ function(y = NULL, r = NULL) {
   
   data <- dbGetQuery(con, query)
   
-  toJSON(data)
+  return(data)
 }
 
 # YRP ---------------------------------------------------------------------
@@ -234,7 +230,7 @@ function(y = NULL, r = NULL, p = NULL) {
   
   data <- dbGetQuery(con, query)
   
-  toJSON(data)
+  return(data)
 }
 
 # YRPC --------------------------------------------------------------------
@@ -283,5 +279,5 @@ function(y = NULL, r = NULL, p = NULL) {
   
   data <- dbGetQuery(con, query)
   
-  toJSON(data)
+  return(data)
 }
