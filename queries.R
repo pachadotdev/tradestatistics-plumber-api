@@ -67,6 +67,35 @@ function() {
   return(data)
 }
 
+# YC ----------------------------------------------------------------------
+
+#* Echo back the result of a query on yc table
+#* @param y Year
+#* @get /yc
+function(y = NULL) {
+  y <- as.integer(y)
+  
+  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
+    return(
+      paste("The specified year is not a valid integer value.")
+    )
+  }
+  
+  stopifnot(
+    is.numeric(y)
+  )
+  
+  query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yc
+                    WHERE year = {y}
+                    ", .con = con)
+  
+  data <- dbGetQuery(con, query)
+  
+  return(data)
+}
+
 # YP ----------------------------------------------------------------------
 
 #* Echo back the result of a query on yrpc table
@@ -83,7 +112,7 @@ function(y = NULL, p = NULL) {
     )
   }
   
-  if (nchar(p) != 3 & !p %in% countries_data$country_iso) {
+  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
     return(
       paste("The specified reporter is not a valid ISO code, please check /countries.")
     )
@@ -94,12 +123,20 @@ function(y = NULL, p = NULL) {
     is.character(p)
   )
   
-  query <- glue_sql("
+  if (p == "all") {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yp
+                    WHERE year = {y}
+                    ", .con = con) 
+  } else {
+    query <- glue_sql("
                     SELECT *
                     FROM public.hs07_yp
                     WHERE year = {y}
                     AND partner_iso = {p}
                     ", .con = con)
+  }
   
   data <- dbGetQuery(con, query)
   
@@ -108,7 +145,7 @@ function(y = NULL, p = NULL) {
 
 # YPC ---------------------------------------------------------------------
 
-#* Echo back the result of a query on yrpc table
+#* Echo back the result of a query on ypc table
 #* @param y Year
 #* @param p Partner ISO
 #* @get /ypc
@@ -122,7 +159,7 @@ function(y = NULL, p = NULL) {
     )
   }
   
-  if (nchar(p) != 3 & !p %in% countries_data$country_iso) {
+  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
     return(
       paste("The specified reporter is not a valid ISO code, please check /countries.")
     )
@@ -133,12 +170,20 @@ function(y = NULL, p = NULL) {
     is.character(p)
   )
   
-  query <- glue_sql("
+  if (p == "all") {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_ypc
+                    WHERE year = {y}
+                    ", .con = con)
+  } else {
+    query <- glue_sql("
                     SELECT *
                     FROM public.hs07_ypc
                     WHERE year = {y}
                     AND partner_iso = {p}
                     ", .con = con)
+  }
   
   data <- dbGetQuery(con, query)
   
@@ -147,7 +192,7 @@ function(y = NULL, p = NULL) {
 
 # YR ----------------------------------------------------------------------
 
-#* Echo back the result of a query on yrpc table
+#* Echo back the result of a query on yr table
 #* @param y Year
 #* @param r Reporter ISO
 #* @get /yr
@@ -161,7 +206,7 @@ function(y = NULL, r = NULL) {
     )
   }
   
-  if (nchar(r) != 3 & !r %in% countries_data$country_iso) {
+  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
     return(
       paste("The specified reporter is not a valid ISO code, please check /countries.")
     )
@@ -172,12 +217,67 @@ function(y = NULL, r = NULL) {
     is.character(r)
   )
   
-  query <- glue_sql("
+  if (r == "all") {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yr
+                    WHERE year = {y}
+                    ", .con = con)
+  } else {
+    query <- glue_sql("
                     SELECT *
                     FROM public.hs07_yr
                     WHERE year = {y}
                     AND reporter_iso = {r}
                     ", .con = con)
+  }
+  
+  data <- dbGetQuery(con, query)
+  
+  return(data)
+}
+
+# YRC ---------------------------------------------------------------------
+
+#* Echo back the result of a query on yrc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @get /yrc
+function(y = NULL, r = NULL) {
+  y <- as.integer(y)
+  r <- tolower(substr(as.character(r), 1, 3))
+  
+  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
+    return(
+      paste("The specified year is not a valid integer value.")
+    )
+  }
+  
+  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
+    return(
+      paste("The specified reporter is not a valid ISO code, please check /countries.")
+    )
+  }
+  
+  stopifnot(
+    is.numeric(y), 
+    is.character(r)
+  )
+  
+  if (r == "all") {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yrc
+                    WHERE year = {y}
+                    ", .con = con)
+  } else {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yrc
+                    WHERE year = {y}
+                    AND partner_iso = {r}
+                    ", .con = con)
+  }
   
   data <- dbGetQuery(con, query)
   
@@ -186,7 +286,7 @@ function(y = NULL, r = NULL) {
 
 # YRP ---------------------------------------------------------------------
 
-#* Echo back the result of a query on yrpc table
+#* Echo back the result of a query on yrp table
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
@@ -202,13 +302,13 @@ function(y = NULL, r = NULL, p = NULL) {
     )
   }
   
-  if (nchar(r) != 3 & !r %in% countries_data$country_iso) {
+  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
     return(
       paste("The specified reporter is not a valid ISO code, please check /countries.")
     )
   }
   
-  if (nchar(p) != 3 & !p %in% countries_data$country_iso) {
+  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
     return(
       paste("The specified reporter is not a valid ISO code, please check /countries.")
     )
@@ -220,13 +320,41 @@ function(y = NULL, r = NULL, p = NULL) {
     is.character(p)
   )
   
-  query <- glue_sql("
+  if (r == "all" & p != "all") {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yrp
+                    WHERE year = {y}
+                    AND partner_iso = {p}
+                    ", .con = con)
+  }
+  
+  if (r != "all" & p == "all") {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yrp
+                    WHERE year = {y}
+                    AND reporter_iso = {r}
+                    ", .con = con)
+  }
+  
+  if (r != "all" & p != "all") {
+    query <- glue_sql("
                     SELECT *
                     FROM public.hs07_yrp
                     WHERE year = {y}
                     AND reporter_iso = {r}
                     AND partner_iso = {p}
                     ", .con = con)
+  }
+  
+  if (r == "all" & p == "all") {
+    query <- glue_sql("
+                    SELECT *
+                    FROM public.hs07_yrp
+                    WHERE year = {y}
+                    ", .con = con)
+  }
   
   data <- dbGetQuery(con, query)
   
@@ -251,13 +379,13 @@ function(y = NULL, r = NULL, p = NULL) {
     )
   }
   
-  if (nchar(r) != 3 & !r %in% countries_data$country_iso) {
+  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
     return(
       paste("The specified reporter is not a valid ISO code, please check /countries.")
     )
   }
   
-  if (nchar(p) != 3 & !p %in% countries_data$country_iso) {
+  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
     return(
       paste("The specified reporter is not a valid ISO code, please check /countries.")
     )
@@ -269,13 +397,41 @@ function(y = NULL, r = NULL, p = NULL) {
     is.character(p)
   )
   
-  query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yrpc
-                    WHERE year = {y}
-                    AND reporter_iso = {r}
-                    AND partner_iso = {p}
-                    ", .con = con)
+  if (r == "all" & p != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND partner_iso = {p}
+                      ", .con = con)
+  }
+  
+  if (r != "all" & p == "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      ", .con = con)
+  }
+  
+  if (r != "all" & p != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      AND partner_iso = {p}
+                      ", .con = con)
+  }
+  
+  if (r == "all" & p == "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      ", .con = con)
+  }
   
   data <- dbGetQuery(con, query)
   
