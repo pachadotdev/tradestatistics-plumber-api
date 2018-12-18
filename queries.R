@@ -275,7 +275,7 @@ function(y = NULL, r = NULL) {
                     SELECT *
                     FROM public.hs07_yrc
                     WHERE year = {y}
-                    AND partner_iso = {r}
+                    AND reporter_iso = {r}
                     ", .con = con)
   }
   
