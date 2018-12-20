@@ -30,7 +30,7 @@ countries_data <- dbGetQuery(con, countries_query)
 
 # Hello World -------------------------------------------------------------
 
-#* Echo back the input
+#* Echo back Hello World!
 #* @get /
 
 function() {
@@ -39,7 +39,7 @@ function() {
 
 # API status --------------------------------------------------------------
 
-#* Echo back the input
+#* Echo back API status
 #* @get /status
 function() {
   paste("The API is working :)")
