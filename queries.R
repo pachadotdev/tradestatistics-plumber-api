@@ -28,10 +28,18 @@ countries_query <- glue_sql("
 
 countries_data <- dbGetQuery(con, countries_query)
 
+# Hello World -------------------------------------------------------------
+
+#* Echo back the input
+#* @get /
+
+function() {
+  paste("Hello World! This is Open Trade Statistics' API")
+}
+
 # API status --------------------------------------------------------------
 
 #* Echo back the input
-#* @param msg The message to echo
 #* @get /status
 function() {
   paste("The API is working :)")
