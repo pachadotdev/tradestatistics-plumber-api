@@ -7,7 +7,7 @@ library(RPostgreSQL)
 
 # DB connection parameters ------------------------------------------------
 
-source("credentials.R")
+source("/api/credentials.R")
 drv <- dbDriver("PostgreSQL")
 
 con <- dbConnect(
