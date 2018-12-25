@@ -102,6 +102,13 @@ function(res) {
   res
 }
 
+#* Echo back API status
+#* @get /bowie
+#* @html
+function() {
+  paste('<meta http-equiv="refresh" content="0; url=https://en.wikipedia.org/wiki/David_Bowie">')
+}
+
 # Countries ---------------------------------------------------------------
 
 #* Echo back the result of a query on attributes_countries table
@@ -112,6 +119,26 @@ function() {
                     FROM public.attributes_country_names
                     ", .con = con)
   
+  data <- dbGetQuery(con, query)
+  
+  return(data)
+}
+
+# 2016 Reporters ----------------------------------------------------------
+
+#* Echo back the result of a query on yr table
+#* @param r Reporter ISO
+#* @get /2016_reporters
+function(y = 2016, r = "all") {
+  y <- as.integer(y)
+  r <- tolower(substr(as.character(r), 1, 3))
+  
+  query <- glue_sql("
+                    SELECT reporter_iso
+                    FROM public.hs07_yr
+                    WHERE year = {y}
+                    ", .con = con)
+    
   data <- dbGetQuery(con, query)
   
   return(data)
@@ -155,100 +182,6 @@ function(y = NULL) {
                     FROM public.hs07_yc
                     WHERE year = {y}
                     ", .con = con)
-  
-  data <- dbGetQuery(con, query)
-  
-  return(data)
-}
-
-# YP ----------------------------------------------------------------------
-
-#* Echo back the result of a query on yrpc table
-#* @param y Year
-#* @param p Partner ISO
-#* @get /yp
-function(y = NULL, p = NULL) {
-  y <- as.integer(y)
-  p <- tolower(substr(as.character(p), 1, 3))
-  
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
-  }
-  
-  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
-  }
-  
-  stopifnot(
-    is.numeric(y), 
-    is.character(p)
-  )
-  
-  if (p == "all") {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yp
-                    WHERE year = {y}
-                    ", .con = con) 
-  } else {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yp
-                    WHERE year = {y}
-                    AND partner_iso = {p}
-                    ", .con = con)
-  }
-  
-  data <- dbGetQuery(con, query)
-  
-  return(data)
-}
-
-# YPC ---------------------------------------------------------------------
-
-#* Echo back the result of a query on ypc table
-#* @param y Year
-#* @param p Partner ISO
-#* @get /ypc
-function(y = NULL, p = NULL) {
-  y <- as.integer(y)
-  p <- tolower(substr(as.character(p), 1, 3))
-  
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
-  }
-  
-  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
-  }
-  
-  stopifnot(
-    is.numeric(y), 
-    is.character(p)
-  )
-  
-  if (p == "all") {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_ypc
-                    WHERE year = {y}
-                    ", .con = con)
-  } else {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_ypc
-                    WHERE year = {y}
-                    AND partner_iso = {p}
-                    ", .con = con)
-  }
   
   data <- dbGetQuery(con, query)
   
