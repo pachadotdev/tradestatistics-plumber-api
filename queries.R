@@ -12,8 +12,8 @@ source("/api/credentials.R")
 drv <- dbDriver("PostgreSQL")
 
 con <- dbConnect(
-  drv, 
-  host = dbhost, 
+  drv,
+  host = dbhost,
   port = 5432,
   user = dbusr,
   password = dbpwd,
@@ -57,48 +57,50 @@ function() {
 #* Echo back API status
 #* @get /me
 function(res) {
-  res$body <- paste("
-  ,*************,,*/(((((//,,*(#%%%%%%%%%%%%%%%#(*,,,****************************************************,*/(((((((((/((((////****/((##%%%%%%
-  ,*************,,//((((((//,,*(%%%%%%%%%%%%%%%%%##/*****************************************************,,*/(///(//////****//((##%%%%%%%%%%%
-  ,************,,*/(((((((//***/#%%%%%%%%%%%%%%%%%%%#(/***************************************************,*//////////*//((#%%%%%%%%%%%%%%%%%
-  ,***********,,*////////////***/##%%%%%%%%%%%%%%%%%%%##(*,***********************************************,,*////////(###%%%%%%%%%%%%%%%%%%%%
-  ,**********,,,*/*******//////**/(#%%%%%%%%%%%%%%%%%%%%%#(/**********************************************,,,***/(##%%%%%%%%%%%%%%%%%%%%%%%%%
-  ,*********,,,,*************///***/(#%%%%%%%%%%%%%%%%%%%%%%#(/***********************************,****,****/((#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
-  ,*********,,,***************//****/(##%%%%%%%%%%%%%%%%%%%%%%##//**************//////////////////////((#####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(
-  ,********,,,,***********************/(#%%%%%%%%%%%%%%%%%%%%%%%##################%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(/
-  ,*******,..,***********************,,*/##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%###((//
-  ,*******,.,,***********************,,,,*(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(//**//
-  ,******,.,,,************************,,,,*/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(//*******
-  ,*****,,,,,********,***,,,,,,,,,,,,*,,,,,,*/(######%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(/**********
-  ,*****,..,*******,,,,,,,,,,,,,,,,,,,,,,*,,,,*///((#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%###(/************
-  ,*****,,,*******,,,,,*,,,,,,,,,,,,,,,,,****,,,*/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#######(//**************
-  ,****,.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,**,,,/(%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#((//******************
-  ,***,..,,,,,,,,,,,,,,,,,,,,,,,,,,,,,..,,,,,,,*(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*******************
-  ,**,,.,,,,,,,,,,,,,,,,,,,,,,,,,,.......,,,,,,/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#####%%%%%%%%%%%%%%%%#(/******************
-  ,**,..,,,,,,,,,,,,,,,,,,,,,,,,,......,,,*,,,*(#%%%%%%%%##(((/(##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(((/*/((#%%%%%%%%%%%%%%#(/*****************
-  ,*,..,,,,,,,,,,,,,,,,,,,,,,,,,,,.....,,**,,*/#%%%%%%%##((((*,**/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%##((##/,,,*(#%%%%%%%%%%%%%%#(*****************
-  .*,.,,,**,,,,,,,,,,,,,,,,,,,,,,,,,,*****,,,/(%%%%%%%%#(//(#/,..*/#%%%%%%%%%%%%%%%%%%%%%%%%%%%#(//(#/,..,/(#%%%%%%%%%%%%%%#/*****///////////
-  .,..,,,,,,,,,,,,,,,,,,,,,,,,,,*,,*******,,,(#%%%%%%%%#(*,,,....,/#%%%%%%%%%%%%%%%%%%%%%%%%%%%#(*,,,....,/(#%%%%%%%%%%%%%%#(*,**////////////
-  .,..,,,,,,,,,...........,,,,,,*,********,,*(#%%%%%%%%%#(/*,,...,/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*,,..,*/##%%%%%%%%%%%%%%%#(***////////////
-  ...,,,,,,,................,,*,**********,,/#%%%%%%%%%%%%#((////((#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##((///(#%%%%%%%%%%%%%%%%%%(/**////////////
-   ..,,,,,,.................,,,**********,,*(#%%%%%%%%%%%%%%%%%%#%%%%%%%%#((///((#%%%%%%%%%%%%%%%%%%%%%#%%%%%%%%%%%%%%%%%%%%%#/**////////////
-  .,,,,,,,,.................,,***********,,/(####%%%%%%%%%%%%%%%%%%%%%%%%#(/*,,,*(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*////////////
-  .,***,,,,,,..............,,,**********,..,***//((##%%%%%%%%%%%%%%%%%%%%%%%##((##%%%%%%%%%%%%%%%%%%%%%%%%%##(((((((((###%%%%%#/**///////////
-  .*****,,,,,,,,,,,,,,,,,,,*************,..,*******/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##///*//////((#%%%%%#(**///////////
-  .****************/******/***////*****,.,*///////**/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(////////////(#%%%%%#/**//////////
-  .***********************/////*******,..,*//////////(#%%%%%%%%%%%%%%%%%%%%##########%%%%%%%%%%%%%%%%%%%%#(///////////*/(#%%%%%#(***/////////
-  .************************///********,..,*//////////#%%%%%%%%%%%%%%%%%%#(//*****///(((##%%%%%%%%%%%%%%%%#(///////////**/##%%%%##/***////////
-  .***********************************,.,,***///////(#%%%%%%%%%%%%%%%%#(/*,,,*//((((////(#%%%%%%%%%%%%%%%#((////////////(#%%%%%%#(*********//
-  ,***********,,,*,,*,,**************,,,*//******//(#%%%%%%%%%%%%%%%%%#(*,,*/(((#####(((((#%%%%%%%%%%%%%%%##///////////(#%%%%%%%%#(***///////
-  ,*************,,**,,,************,,,,,/(##((((####%%%%%%%%%%%%%%%%%%%(/**/(((#((((#((//(#%%%%%%%%%%%%%%%%%#(((((((((##%%%%%%%%%%#/**///////
-  ,******************************,,,,,,,*(#%#%%%%%%%%%%%%%%%%%%%%%%%%%%#(**/((#(#(((#((//(#%%%%%%%%%%%%%%%%%%%%%%%#%#%%%%%%%%%%%%%#(**///////
-  ,*************,**************,****,,,,,/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*/((((#((((///(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%(/*///////
-  ,*************************************,*/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(////////////(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#/**/////*
-  ,******////****///////////////////////***/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%####(((((((###%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(********
-  .,*,****///////////////////////////////***/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*******
-  .,,,,*****//////////////////////////*******(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(*******
-  .,,,,,,***********/////////////////********/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%(*******
-  ")
+  res$body <- paste(
+    "
+    ,*************,,*/(((((//,,*(#%%%%%%%%%%%%%%%#(*,,,****************************************************,*/(((((((((/((((////****/((##%%%%%%
+    ,*************,,//((((((//,,*(%%%%%%%%%%%%%%%%%##/*****************************************************,,*/(///(//////****//((##%%%%%%%%%%%
+    ,************,,*/(((((((//***/#%%%%%%%%%%%%%%%%%%%#(/***************************************************,*//////////*//((#%%%%%%%%%%%%%%%%%
+    ,***********,,*////////////***/##%%%%%%%%%%%%%%%%%%%##(*,***********************************************,,*////////(###%%%%%%%%%%%%%%%%%%%%
+    ,**********,,,*/*******//////**/(#%%%%%%%%%%%%%%%%%%%%%#(/**********************************************,,,***/(##%%%%%%%%%%%%%%%%%%%%%%%%%
+    ,*********,,,,*************///***/(#%%%%%%%%%%%%%%%%%%%%%%#(/***********************************,****,****/((#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#
+    ,*********,,,***************//****/(##%%%%%%%%%%%%%%%%%%%%%%##//**************//////////////////////((#####%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(
+    ,********,,,,***********************/(#%%%%%%%%%%%%%%%%%%%%%%%##################%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(/
+    ,*******,..,***********************,,*/##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%###((//
+    ,*******,.,,***********************,,,,*(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(//**//
+    ,******,.,,,************************,,,,*/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(//*******
+    ,*****,,,,,********,***,,,,,,,,,,,,*,,,,,,*/(######%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(/**********
+    ,*****,..,*******,,,,,,,,,,,,,,,,,,,,,,*,,,,*///((#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%###(/************
+    ,*****,,,*******,,,,,*,,,,,,,,,,,,,,,,,****,,,*/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#######(//**************
+    ,****,.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,**,,,/(%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#((//******************
+    ,***,..,,,,,,,,,,,,,,,,,,,,,,,,,,,,,..,,,,,,,*(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*******************
+    ,**,,.,,,,,,,,,,,,,,,,,,,,,,,,,,.......,,,,,,/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#####%%%%%%%%%%%%%%%%#(/******************
+    ,**,..,,,,,,,,,,,,,,,,,,,,,,,,,......,,,*,,,*(#%%%%%%%%##(((/(##%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(((/*/((#%%%%%%%%%%%%%%#(/*****************
+    ,*,..,,,,,,,,,,,,,,,,,,,,,,,,,,,.....,,**,,*/#%%%%%%%##((((*,**/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%##((##/,,,*(#%%%%%%%%%%%%%%#(*****************
+    .*,.,,,**,,,,,,,,,,,,,,,,,,,,,,,,,,*****,,,/(%%%%%%%%#(//(#/,..*/#%%%%%%%%%%%%%%%%%%%%%%%%%%%#(//(#/,..,/(#%%%%%%%%%%%%%%#/*****///////////
+    .,..,,,,,,,,,,,,,,,,,,,,,,,,,,*,,*******,,,(#%%%%%%%%#(*,,,....,/#%%%%%%%%%%%%%%%%%%%%%%%%%%%#(*,,,....,/(#%%%%%%%%%%%%%%#(*,**////////////
+    .,..,,,,,,,,,...........,,,,,,*,********,,*(#%%%%%%%%%#(/*,,...,/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*,,..,*/##%%%%%%%%%%%%%%%#(***////////////
+    ...,,,,,,,................,,*,**********,,/#%%%%%%%%%%%%#((////((#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##((///(#%%%%%%%%%%%%%%%%%%(/**////////////
+    ..,,,,,,.................,,,**********,,*(#%%%%%%%%%%%%%%%%%%#%%%%%%%%#((///((#%%%%%%%%%%%%%%%%%%%%%#%%%%%%%%%%%%%%%%%%%%%#/**////////////
+    .,,,,,,,,.................,,***********,,/(####%%%%%%%%%%%%%%%%%%%%%%%%#(/*,,,*(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*////////////
+    .,***,,,,,,..............,,,**********,..,***//((##%%%%%%%%%%%%%%%%%%%%%%%##((##%%%%%%%%%%%%%%%%%%%%%%%%%##(((((((((###%%%%%#/**///////////
+    .*****,,,,,,,,,,,,,,,,,,,*************,..,*******/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##///*//////((#%%%%%#(**///////////
+    .****************/******/***////*****,.,*///////**/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(////////////(#%%%%%#/**//////////
+    .***********************/////*******,..,*//////////(#%%%%%%%%%%%%%%%%%%%%##########%%%%%%%%%%%%%%%%%%%%#(///////////*/(#%%%%%#(***/////////
+    .************************///********,..,*//////////#%%%%%%%%%%%%%%%%%%#(//*****///(((##%%%%%%%%%%%%%%%%#(///////////**/##%%%%##/***////////
+    .***********************************,.,,***///////(#%%%%%%%%%%%%%%%%#(/*,,,*//((((////(#%%%%%%%%%%%%%%%#((////////////(#%%%%%%#(*********//
+    ,***********,,,*,,*,,**************,,,*//******//(#%%%%%%%%%%%%%%%%%#(*,,*/(((#####(((((#%%%%%%%%%%%%%%%##///////////(#%%%%%%%%#(***///////
+    ,*************,,**,,,************,,,,,/(##((((####%%%%%%%%%%%%%%%%%%%(/**/(((#((((#((//(#%%%%%%%%%%%%%%%%%#(((((((((##%%%%%%%%%%#/**///////
+    ,******************************,,,,,,,*(#%#%%%%%%%%%%%%%%%%%%%%%%%%%%#(**/((#(#(((#((//(#%%%%%%%%%%%%%%%%%%%%%%%#%#%%%%%%%%%%%%%#(**///////
+    ,*************,**************,****,,,,,/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*/((((#((((///(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%(/*///////
+    ,*************************************,*/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(////////////(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#/**/////*
+    ,******////****///////////////////////***/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%####(((((((###%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(********
+    .,*,****///////////////////////////////***/#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%#(/*******
+    .,,,,*****//////////////////////////*******(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%##(*******
+    .,,,,,,***********/////////////////********/(#%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%(*******
+    "
+  )
   
   res
 }
@@ -107,7 +109,9 @@ function(res) {
 #* @get /bowie
 #* @html
 function() {
-  paste('<meta http-equiv="refresh" content="0; url=https://en.wikipedia.org/wiki/David_Bowie">')
+  paste(
+    '<meta http-equiv="refresh" content="0; url=https://en.wikipedia.org/wiki/David_Bowie">'
+  )
 }
 
 # Countries ---------------------------------------------------------------
@@ -144,25 +148,37 @@ function() {
 
 #* Echo back the result of a query on yc table
 #* @param y Year
+#* @param l Commodity code length
 #* @get /yc
-function(y = NULL) {
+function(y = NULL, l = 4) {
   y <- as.integer(y)
+  l <- tolower(substr(as.character(l), 1, 3))
   
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
   }
   
-  stopifnot(
-    is.numeric(y)
-  )
+  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
+    return("The specified length is not a valid integer value.")
+    stop()
+  }
   
-  query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yc
-                    WHERE year = {y}
-                    ", .con = con)
+  if (l == "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yc
+                      WHERE year = {y}
+                      ", .con = con)
+  } else {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yc
+                      WHERE year = {y}
+                      AND commodity_code_length = {l}
+                      ",
+                      .con = con)
+  }
   
   data <- dbGetQuery(con, query)
   
@@ -178,10 +194,9 @@ function(y = NULL) {
 function(y = 2016) {
   y <- as.integer(y)
   
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
   }
   
   stopifnot(is.integer(y))
@@ -190,20 +205,23 @@ function(y = 2016) {
                     SELECT year, commodity_code, export_value_usd, import_value_usd, pci_4_digits_commodity_code
                     FROM public.hs07_yc
                     WHERE year = {y}
-                    ", .con = con)
+                    AND commodity_code_length = 4
+                    ",
+                    .con = con
+  )
   
   data <- dbGetQuery(con, query)
   
-  data <- data %>% 
-    as_tibble() %>% 
+  data <- data %>%
+    as_tibble() %>%
     
-    arrange(-export_value_usd) %>% 
-    mutate(export_value_usd_rank = row_number()) %>% 
+    arrange(-export_value_usd) %>%
+    mutate(export_value_usd_rank = row_number()) %>%
     
-    arrange(-import_value_usd) %>% 
-    mutate(import_value_usd_rank = row_number()) %>% 
+    arrange(-import_value_usd) %>%
+    mutate(import_value_usd_rank = row_number()) %>%
     
-    arrange(-pci_4_digits_commodity_code) %>% 
+    arrange(-pci_4_digits_commodity_code) %>%
     mutate(pci_4_digits_commodity_code_rank = row_number())
   
   return(data)
@@ -219,36 +237,31 @@ function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 3))
   
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
   }
   
-  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
+  if (nchar(r) != 3 |
+      !r %in% c(countries_data$country_iso, "all")) {
+    return("The specified reporter is not a valid ISO code, please check /countries.")
+    stop()
   }
-  
-  stopifnot(
-    is.integer(y), 
-    is.character(r)
-  )
   
   if (r == "all") {
     query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yr
-                    WHERE year = {y}
-                    ", .con = con)
+                      SELECT *
+                      FROM public.hs07_yr
+                      WHERE year = {y}
+                      ", .con = con)
   } else {
     query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yr
-                    WHERE year = {y}
-                    AND reporter_iso = {r}
-                    ", .con = con)
+                      SELECT *
+                      FROM public.hs07_yr
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      ",
+                      .con = con)
   }
   
   data <- dbGetQuery(con, query)
@@ -261,15 +274,20 @@ function(y = NULL, r = NULL) {
 #* Echo back the result of a query on yr table
 #* @param r Reporter ISO
 #* @get /reporters
-function(y = 2016, r = "all") {
+function(y = 2016) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 3))
+  
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
+  }
   
   query <- glue_sql("
                     SELECT reporter_iso
                     FROM public.hs07_yr
                     WHERE year = {y}
-                    ", .con = con)
+                    ",
+                    .con = con)
   
   data <- dbGetQuery(con, query)
   
@@ -281,14 +299,12 @@ function(y = 2016, r = "all") {
 #* Echo back the result of a query on yr table
 #* @param y Year
 #* @get /country_rankings
-
 function(y = 2016) {
   y <- as.integer(y)
   
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
   }
   
   stopifnot(is.integer(y))
@@ -297,20 +313,22 @@ function(y = 2016) {
                     SELECT year, reporter_iso, export_value_usd, import_value_usd, eci_4_digits_commodity_code
                     FROM public.hs07_yr
                     WHERE year = {y}
-                    ", .con = con)
+                    ",
+                    .con = con
+  )
   
   data <- dbGetQuery(con, query)
   
-  data <- data %>% 
-    as_tibble() %>% 
+  data <- data %>%
+    as_tibble() %>%
     
-    arrange(-export_value_usd) %>% 
-    mutate(export_value_usd_rank = row_number()) %>% 
+    arrange(-export_value_usd) %>%
+    mutate(export_value_usd_rank = row_number()) %>%
     
-    arrange(-import_value_usd) %>% 
-    mutate(import_value_usd_rank = row_number()) %>% 
+    arrange(-import_value_usd) %>%
+    mutate(import_value_usd_rank = row_number()) %>%
     
-    arrange(-eci_4_digits_commodity_code) %>% 
+    arrange(-eci_4_digits_commodity_code) %>%
     mutate(eci_4_digits_commodity_code_rank = row_number())
   
   return(data)
@@ -321,41 +339,68 @@ function(y = 2016) {
 #* Echo back the result of a query on yrc table
 #* @param y Year
 #* @param r Reporter ISO
+#* @param l Commodity code length
 #* @get /yrc
-function(y = NULL, r = NULL) {
+function(y = NULL, r = NULL, l = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 3))
+  l <- tolower(substr(as.character(l), 1, 3))
   
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
+  }
+  
+  if (nchar(r) != 3 |
+      !r %in% c(countries_data$country_iso, "all")) {
+    return("The specified reporter is not a valid ISO code, please check /countries.")
+    stop()
+  }
+  
+  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
+    return("The specified length is not a valid integer value.")
+    stop()
+  }
+  
+  if (r == "all" & l == "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrc
+                      WHERE year = {y}
+                      ", .con = con)
+  }
+  
+  if (r == "all" & l != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrc
+                      WHERE year = {y}
+                      AND commodity_code_length = {l}
+                      ",
+                      .con = con
     )
   }
   
-  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
+  if (r != "all" & l == "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrc
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      ",
+                      .con = con)
   }
   
-  stopifnot(
-    is.numeric(y), 
-    is.character(r)
-  )
-  
-  if (r == "all") {
+  if (r != "all" & l != "all") {
     query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yrc
-                    WHERE year = {y}
-                    ", .con = con)
-  } else {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yrc
-                    WHERE year = {y}
-                    AND reporter_iso = {r}
-                    ", .con = con)
+                      SELECT *
+                      FROM public.hs07_yrc
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      AND commodity_code_length = {l}
+                      ",
+                      .con = con
+    )
   }
   
   data <- dbGetQuery(con, query)
@@ -369,70 +414,68 @@ function(y = NULL, r = NULL) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
+#* @param l Commodity code length
 #* @get /yrp
-function(y = NULL, r = NULL, p = NULL) {
+function(y = NULL, r = NULL, p = NULL, l = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 3))
   p <- tolower(substr(as.character(p), 1, 3))
   
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
   }
   
-  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
+  if (nchar(r) != 3 |
+      !r %in% c(countries_data$country_iso, "all")) {
+    return("The specified reporter is not a valid ISO code, please check /countries.")
+    stop()
   }
   
-  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
-  }
-  
-  stopifnot(
-    is.integer(y), 
-    is.character(r),
-    is.character(p)
-  )
-  
-  if (r == "all" & p != "all") {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yrp
-                    WHERE year = {y}
-                    AND partner_iso = {p}
-                    ", .con = con)
-  }
-  
-  if (r != "all" & p == "all") {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yrp
-                    WHERE year = {y}
-                    AND reporter_iso = {r}
-                    ", .con = con)
-  }
-  
-  if (r != "all" & p != "all") {
-    query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yrp
-                    WHERE year = {y}
-                    AND reporter_iso = {r}
-                    AND partner_iso = {p}
-                    ", .con = con)
+  if (nchar(p) != 3 |
+      !p %in% c(countries_data$country_iso, "all")) {
+    return("The specified reporter is not a valid ISO code, please check /countries.")
+    stop()
   }
   
   if (r == "all" & p == "all") {
     query <- glue_sql("
-                    SELECT *
-                    FROM public.hs07_yrp
-                    WHERE year = {y}
-                    ", .con = con)
+                      SELECT *
+                      FROM public.hs07_yrp
+                      WHERE year = {y}
+                      ", .con = con)
+  }
+  
+  if (r != "all" & p == "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrp
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      ",
+                      .con = con)
+  }
+  
+  if (r == "all" & p != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrp
+                      WHERE year = {y}
+                      AND partner_iso = {p}
+                      ",
+                      .con = con)
+  }
+  
+  if (r != "all" & p != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrp
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      AND partner_iso = {p}
+                      ",
+                      .con = con
+    )
   }
   
   data <- dbGetQuery(con, query)
@@ -446,70 +489,122 @@ function(y = NULL, r = NULL, p = NULL) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
+#* @param l Commodity code length
 #* @get /yrpc
-function(y = NULL, r = NULL, p = NULL) {
+function(y = NULL, r = NULL, p = NULL, l = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 3))
   p <- tolower(substr(as.character(p), 1, 3))
+  l <- tolower(substr(as.character(l), 1, 3))
   
-  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
-    return(
-      paste("The specified year is not a valid integer value.")
-    )
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value.")
+    stop()
   }
   
-  if (nchar(r) != 3 & !r %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
+  if (nchar(r) != 3 |
+      !r %in% c(countries_data$country_iso, "all")) {
+    return("The specified reporter is not a valid ISO code, please check /countries.")
+    stop()
   }
   
-  if (nchar(p) != 3 & !p %in% c(countries_data$country_iso, "all")) {
-    return(
-      paste("The specified reporter is not a valid ISO code, please check /countries.")
-    )
+  if (nchar(p) != 3 |
+      !p %in% c(countries_data$country_iso, "all")) {
+    return("The specified reporter is not a valid ISO code, please check /countries.")
+    stop()
   }
   
-  stopifnot(
-    is.integer(y), 
-    is.character(r),
-    is.character(p)
-  )
+  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
+    return("The specified length is not a valid integer value.")
+    stop()
+  }
   
-  if (r == "all" & p != "all") {
+  if (r == "all" & p == "all" & l == "all") {
     query <- glue_sql("
                       SELECT *
                       FROM public.hs07_yrpc
                       WHERE year = {y}
-                      AND partner_iso = {p}
                       ", .con = con)
   }
   
-  if (r != "all" & p == "all") {
-    query <- glue_sql("
-                      SELECT *
-                      FROM public.hs07_yrpc
-                      WHERE year = {y}
-                      AND reporter_iso = {r}
-                      ", .con = con)
-  }
-  
-  if (r != "all" & p != "all") {
+  if (r != "all" & p == "all" & l == "all") {
     query <- glue_sql("
                       SELECT *
                       FROM public.hs07_yrpc
                       WHERE year = {y}
                       AND reporter_iso = {r}
-                      AND partner_iso = {p}
-                      ", .con = con)
+                      ",
+                      .con = con)
   }
   
-  if (r == "all" & p == "all") {
+  if (r == "all" & p != "all" & l == "all") {
     query <- glue_sql("
                       SELECT *
                       FROM public.hs07_yrpc
                       WHERE year = {y}
-                      ", .con = con)
+                      AND partner_iso = {p}
+                      ",
+                      .con = con)
+  }
+  
+  if (r == "all" & p == "all" & l != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND commodity_code_length = {l}
+                      ",
+                      .con = con
+    )
+  }
+  
+  if (r != "all" & p != "all" & l == "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      AND partner_iso = {p}
+                      ",
+                      .con = con
+    )
+  }
+  
+  if (r != "all" & p == "all" & l != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      AND commodity_code_length = {l}
+                      ",
+                      .con = con
+    )
+  }
+  
+  if (r == "all" & p != "all" & l != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND partner_iso = {p}
+                      AND commodity_code_length = {l}
+                      ",
+                      .con = con
+    )
+  }
+  
+  if (r != "all" & p != "all" & l != "all") {
+    query <- glue_sql("
+                      SELECT *
+                      FROM public.hs07_yrpc
+                      WHERE year = {y}
+                      AND reporter_iso = {r}
+                      AND partner_iso = {p}
+                      AND commodity_code_length = {l}
+                      ",
+                      .con = con
+    )
   }
   
   data <- dbGetQuery(con, query)
