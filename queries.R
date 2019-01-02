@@ -2,6 +2,7 @@
 
 # Packages ----------------------------------------------------------------
 
+library(dplyr)
 library(glue)
 library(RPostgreSQL)
 
@@ -124,26 +125,6 @@ function() {
   return(data)
 }
 
-# 2016 Reporters ----------------------------------------------------------
-
-#* Echo back the result of a query on yr table
-#* @param r Reporter ISO
-#* @get /2016_reporters
-function(y = 2016, r = "all") {
-  y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 3))
-  
-  query <- glue_sql("
-                    SELECT reporter_iso
-                    FROM public.hs07_yr
-                    WHERE year = {y}
-                    ", .con = con)
-    
-  data <- dbGetQuery(con, query)
-  
-  return(data)
-}
-
 # Products ----------------------------------------------------------------
 
 #* Echo back the result of a query on attributes_countries table
@@ -184,6 +165,46 @@ function(y = NULL) {
                     ", .con = con)
   
   data <- dbGetQuery(con, query)
+  
+  return(data)
+}
+
+# Product rankings --------------------------------------------------------
+
+#* Echo back the result of a query on yr table
+#* @param y Year
+#* @get /product_rankings
+
+function(y = 2016) {
+  y <- as.integer(y)
+  
+  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
+    return(
+      paste("The specified year is not a valid integer value.")
+    )
+  }
+  
+  stopifnot(is.integer(y))
+  
+  query <- glue_sql("
+                    SELECT year, commodity_code, export_value_usd, import_value_usd, pci_4_digits_commodity_code
+                    FROM public.hs07_yc
+                    WHERE year = {y}
+                    ", .con = con)
+  
+  data <- dbGetQuery(con, query)
+  
+  data <- data %>% 
+    as_tibble() %>% 
+    
+    arrange(-export_value_usd) %>% 
+    mutate(export_value_usd_rank = row_number()) %>% 
+    
+    arrange(-import_value_usd) %>% 
+    mutate(import_value_usd_rank = row_number()) %>% 
+    
+    arrange(-pci_4_digits_commodity_code) %>% 
+    mutate(pci_4_digits_commodity_code_rank = row_number())
   
   return(data)
 }
@@ -231,6 +252,66 @@ function(y = NULL, r = NULL) {
   }
   
   data <- dbGetQuery(con, query)
+  
+  return(data)
+}
+
+# Reporters ---------------------------------------------------------------
+
+#* Echo back the result of a query on yr table
+#* @param r Reporter ISO
+#* @get /reporters
+function(y = 2016, r = "all") {
+  y <- as.integer(y)
+  r <- tolower(substr(as.character(r), 1, 3))
+  
+  query <- glue_sql("
+                    SELECT reporter_iso
+                    FROM public.hs07_yr
+                    WHERE year = {y}
+                    ", .con = con)
+  
+  data <- dbGetQuery(con, query)
+  
+  return(data)
+}
+
+# Country rankings --------------------------------------------------------
+
+#* Echo back the result of a query on yr table
+#* @param y Year
+#* @get /country_rankings
+
+function(y = 2016) {
+  y <- as.integer(y)
+  
+  if (nchar(y) != 4 & y <= 2016 & y >= 1962) {
+    return(
+      paste("The specified year is not a valid integer value.")
+    )
+  }
+  
+  stopifnot(is.integer(y))
+  
+  query <- glue_sql("
+                    SELECT year, reporter_iso, export_value_usd, import_value_usd, eci_4_digits_commodity_code
+                    FROM public.hs07_yr
+                    WHERE year = {y}
+                    ", .con = con)
+  
+  data <- dbGetQuery(con, query)
+  
+  data <- data %>% 
+    as_tibble() %>% 
+    
+    arrange(-export_value_usd) %>% 
+    mutate(export_value_usd_rank = row_number()) %>% 
+    
+    arrange(-import_value_usd) %>% 
+    mutate(import_value_usd_rank = row_number()) %>% 
+    
+    arrange(-eci_4_digits_commodity_code) %>% 
+    mutate(eci_4_digits_commodity_code_rank = row_number())
   
   return(data)
 }
