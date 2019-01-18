@@ -8,8 +8,8 @@ library(RPostgreSQL)
 
 # DB connection parameters ------------------------------------------------
 
+drv <- dbDriver("PostgreSQL") # choose the driver
 source("/api/credentials.R")
-drv <- dbDriver("PostgreSQL")
 
 con <- dbConnect(
   drv,
@@ -20,7 +20,7 @@ con <- dbConnect(
   dbname = dbname
 )
 
-# List of countries and products (to filter API parameters) ---------------
+# List of countries (to filter API parameters) ----------------------------
 
 countries_query <- glue_sql(
   "
@@ -31,6 +31,45 @@ countries_query <- glue_sql(
 )
 
 countries_data <- dbGetQuery(con, countries_query)
+
+# create vectors by continent to filter by using meta variables like americas, africa, etc
+
+## Africa
+countries_africa <- countries_data %>% 
+  filter(continent == "Africa") %>% 
+  select(country_iso)
+
+countries_africa <- paste0("('", paste(countries_africa$country_iso, collapse = "', '"), "')")
+
+## Americas
+countries_americas <- countries_data %>% 
+  filter(continent == "Americas") %>% 
+  select(country_iso)
+
+countries_americas <- paste0("('", paste(countries_americas$country_iso, collapse = "', '"), "')")
+
+## Asia
+countries_asia <- countries_data %>% 
+  filter(continent == "Asia") %>% 
+  select(country_iso)
+
+countries_asia <- paste0("('", paste(countries_asia$country_iso, collapse = "', '"), "')")
+
+## Europe
+countries_europe <- countries_data %>% 
+  filter(continent == "Europe") %>% 
+  select(country_iso)
+
+countries_europe <- paste0("('", paste(countries_europe$country_iso, collapse = "', '"), "')")
+
+## Oceania
+countries_oceania <- countries_data %>% 
+  filter(continent == "Oceania") %>% 
+  select(country_iso)
+
+countries_oceania <- paste0("('", paste(countries_oceania$country_iso, collapse = "', '"), "')")
+
+# List of products (to filter API parameters) -----------------------------
 
 products_query <- glue_sql(
   "
