@@ -550,7 +550,7 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
   if (p != "all" & nchar(p) == 3) {  
     query <- glue_sql(
       query, 
-      " AND reporter_iso = {p}", 
+      " AND partner_iso = {p}", 
       .con = con
     )
   }
@@ -567,7 +567,7 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
     
     query <- glue_sql(
       query, 
-      " AND reporter_iso IN ({vals*})", 
+      " AND partner_iso IN ({vals*})", 
       vals = p2$country_iso,
       .con = con
     )
@@ -659,7 +659,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   if (p != "all" & nchar(p) == 3) {  
     query <- glue_sql(
       query, 
-      " AND reporter_iso = {p}", 
+      " AND partner_iso = {p}", 
       .con = con
     )
   }
@@ -676,7 +676,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     
     query <- glue_sql(
       query, 
-      " AND reporter_iso IN ({vals*})", 
+      " AND partner_iso IN ({vals*})", 
       vals = p2$country_iso,
       .con = con
     )
