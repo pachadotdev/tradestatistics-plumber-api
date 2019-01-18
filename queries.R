@@ -6,10 +6,18 @@ library(dplyr)
 library(glue)
 library(RPostgreSQL)
 
+# Read credentials from file in .gitignore --------------------------------
+
+readRenviron("/api")
+
 # DB connection parameters ------------------------------------------------
 
 drv <- dbDriver("PostgreSQL") # choose the driver
-source("/api/credentials.R")
+
+dbusr <- Sys.getenv("dbusr")
+dbpwd <- Sys.getenv("dbpwd")
+dbhost <- Sys.getenv("dbhost")
+dbname <- Sys.getenv("dbname")
 
 con <- dbConnect(
   drv,
@@ -19,6 +27,7 @@ con <- dbConnect(
   password = dbpwd,
   dbname = dbname
 )
+
 
 # List of countries (to filter API parameters) ----------------------------
 
