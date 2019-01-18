@@ -28,7 +28,6 @@ con <- dbConnect(
   dbname = dbname
 )
 
-
 # List of countries (to filter API parameters) ----------------------------
 
 countries_query <- glue_sql(
@@ -46,37 +45,44 @@ countries_data <- dbGetQuery(con, countries_query)
 ## Africa
 countries_africa <- countries_data %>% 
   filter(continent == "Africa") %>% 
-  select(country_iso)
-
-countries_africa <- paste0("('", paste(countries_africa$country_iso, collapse = "', '"), "')")
+  select(country_iso) %>% 
+  as.vector()
 
 ## Americas
 countries_americas <- countries_data %>% 
   filter(continent == "Americas") %>% 
-  select(country_iso)
-
-countries_americas <- paste0("('", paste(countries_americas$country_iso, collapse = "', '"), "')")
+  select(country_iso) %>% 
+  as.vector()
 
 ## Asia
 countries_asia <- countries_data %>% 
   filter(continent == "Asia") %>% 
-  select(country_iso)
-
-countries_asia <- paste0("('", paste(countries_asia$country_iso, collapse = "', '"), "')")
+  select(country_iso) %>% 
+  as.vector()
 
 ## Europe
 countries_europe <- countries_data %>% 
   filter(continent == "Europe") %>% 
-  select(country_iso)
-
-countries_europe <- paste0("('", paste(countries_europe$country_iso, collapse = "', '"), "')")
+  select(country_iso) %>% 
+  as.vector()
 
 ## Oceania
 countries_oceania <- countries_data %>% 
   filter(continent == "Oceania") %>% 
-  select(country_iso)
+  select(country_iso) %>% 
+  as.vector()
 
-countries_oceania <- paste0("('", paste(countries_oceania$country_iso, collapse = "', '"), "')")
+continents_data <- tibble(
+  country_iso = c(paste0("c-", c("af", "am", "as", "eu", "oc")), "all"),
+  country_name_english = c(
+    "Alias for all valid ISO codes in Africa",
+    "Alias for all valid ISO codes in the Americas",
+    "Alias for all valid ISO codes in Asia",
+    "Alias for all valid ISO codes in Europe",
+    "Alias for all valid ISO codes in Oceania",
+    "Alias for all valid ISO codes in the World"
+  )
+)
 
 # List of products (to filter API parameters) -----------------------------
 
@@ -90,7 +96,15 @@ products_query <- glue_sql(
 
 products_data <- dbGetQuery(con, products_query)
 
-group_codes <- unique(products_data$group_code)
+groups_data <- products_data %>% 
+  select(group_code, group_name) %>% 
+  distinct() %>% 
+  mutate(group_name = paste("Alias for all codes in the group", group_name)) %>% 
+  add_row(group_code = "all", group_name = "Alias for all codes") %>% 
+  rename(
+    commodity_code = group_code,
+    product_fullname_english = group_name
+  )
 
 # Hello World -------------------------------------------------------------
 
@@ -114,7 +128,8 @@ function() {
 #* Echo back the result of a query on attributes_countries table
 #* @get /countries
 function() {
-  countries_data
+  countries_data %>% 
+    bind_rows(continents_data)
 }
 
 # Countries short (for Shiny) ---------------------------------------------
@@ -131,38 +146,36 @@ function() {
 #* Echo back the result of a query on attributes_countries table
 #* @get /products
 function() {
-  products_data
+  products_data %>% 
+    bind_rows(groups_data)
 }
 
 # YC ----------------------------------------------------------------------
 
 #* Echo back the result of a query on yc table
 #* @param y Year
+#* @param c Commodity code
 #* @param l Commodity code length
 #* @get /yc
-function(y = NULL, c = "all", g = "all", l = 4) {
+function(y = NULL, c = "all", l = 4) {
   y <- as.integer(y)
   c <- tolower(substr(as.character(c), 1, 6))
-  g <- tolower(substr(as.character(g), 1, 3))
   l <- tolower(substr(as.character(l), 1, 3))
   
+  if (nchar(c) == 2) { l <- "all" }
+  
   if (nchar(y) != 4 | !y %in% 1962:2016) {
-    return("The specified year is not a valid integer value.")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, "all")) {
-    return("The specified commodity is not a valid string.")
-    stop()
-  }
-  
-  if (!nchar(g) <= 3 | !g %in% c(group_codes, "all")) {
-    return("The specified group is not a valid string.")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
+    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value.")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
@@ -175,7 +188,7 @@ function(y = NULL, c = "all", g = "all", l = 4) {
     .con = con
   )
   
-  if (c != "all") {
+  if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
       " AND commodity_code = {c}",
@@ -183,10 +196,10 @@ function(y = NULL, c = "all", g = "all", l = 4) {
     )
   }
   
-  if (g != "all") {
+  if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {g}",
+      " AND LEFT(commodity_code, 2) = {c}",
       .con = con
     )
   }
@@ -255,15 +268,15 @@ function(y = 2016) {
 #* @get /yr
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 3))
+  r <- tolower(substr(as.character(r), 1, 4))
   
   if (nchar(y) != 4 | !y %in% 1962:2016) {
-    return("The specified year is not a valid integer value.")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (nchar(r) != 3 | !r %in% c(countries_data$country_iso, "all")) {
-    return("The specified reporter is not a valid ISO code, please check /countries.")
+  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
@@ -276,10 +289,28 @@ function(y = NULL, r = NULL) {
     .con = con
   )
   
-  if (r != "all") {  
+  if (r != "all" & nchar(r) == 3) {  
     query <- glue_sql(
       query, 
       " AND reporter_iso = {r}", 
+      .con = con
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {  
+    r2 <- switch(
+      r, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = r2$country_iso,
       .con = con
     )
   }
@@ -292,7 +323,6 @@ function(y = NULL, r = NULL) {
 # Reporters ---------------------------------------------------------------
 
 #* Echo back the result of a query on yr table
-#* @param r Reporter ISO
 #* @get /reporters
 function(y = 2016) {
   y <- as.integer(y)
@@ -362,37 +392,34 @@ function(y = 2016) {
 #* Echo back the result of a query on yrc table
 #* @param y Year
 #* @param r Reporter ISO
+#* @param c Commodity code
 #* @param l Commodity code length
 #* @get /yrc
-function(y = NULL, r = NULL, c = "all", g = "all", l = 4) {
+function(y = NULL, r = NULL, c = "all", l = 4) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 3))
+  r <- tolower(substr(as.character(r), 1, 4))
   c <- tolower(substr(as.character(c), 1, 6))
-  g <- tolower(substr(as.character(g), 1, 3))
   l <- tolower(substr(as.character(l), 1, 3))
   
+  if (nchar(c) == 2) { l <- "all" }
+  
   if (nchar(y) != 4 | !y %in% 1962:2016) {
-    return("The specified year is not a valid integer value.")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (nchar(r) != 3 | !r %in% c(countries_data$country_iso, "all")) {
-    return("The specified reporter is not a valid ISO code, please check /countries.")
+  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, "all")) {
-    return("The specified commodity is not a valid string.")
-    stop()
-  }
-  
-  if (!nchar(g) <= 3 | !g %in% c(group_codes, "all")) {
-    return("The specified group is not a valid string.")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
+    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value.")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
@@ -405,15 +432,33 @@ function(y = NULL, r = NULL, c = "all", g = "all", l = 4) {
     .con = con
   )
   
-  if (r != "all") {
+  if (r != "all" & nchar(r) == 3) {  
     query <- glue_sql(
-      query,
-      " AND reporter_iso = {r}",
+      query, 
+      " AND reporter_iso = {r}", 
       .con = con
     )
   }
   
-  if (c != "all") {  
+  if (r != "all" & nchar(r) == 4) {  
+    r2 <- switch(
+      r, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = r2$country_iso,
+      .con = con
+    )
+  }
+  
+  if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
       " AND commodity_code = {c}",
@@ -421,10 +466,10 @@ function(y = NULL, r = NULL, c = "all", g = "all", l = 4) {
     )
   }
   
-  if (g != "all") {  
+  if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {g}",
+      " AND LEFT(commodity_code, 2) = {c}",
       .con = con
     )
   }
@@ -450,23 +495,23 @@ function(y = NULL, r = NULL, c = "all", g = "all", l = 4) {
 #* @param p Partner ISO
 #* @param l Commodity code length
 #* @get /yrp
-function(y = NULL, r = NULL, p = NULL, l = NULL) {
+function(y = NULL, r = NULL, p = NULL, l = 4) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 3))
-  p <- tolower(substr(as.character(p), 1, 3))
+  r <- tolower(substr(as.character(r), 1, 4))
+  p <- tolower(substr(as.character(p), 1, 4))
   
   if (nchar(y) != 4 | !y %in% 1962:2016) {
-    return("The specified year is not a valid integer value.")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (nchar(r) != 3 | !r %in% c(countries_data$country_iso, "all")) {
-    return("The specified reporter is not a valid ISO code, please check /countries.")
+  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (nchar(p) != 3 | !p %in% c(countries_data$country_iso, "all")) {
-    return("The specified reporter is not a valid ISO code, please check /countries.")
+  if (!nchar(p) <= 4 | !p %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
@@ -476,18 +521,54 @@ function(y = NULL, r = NULL, p = NULL, l = NULL) {
                     WHERE year = {y}
                     ", .con = con)
   
-  if (r != "all") {
+  if (r != "all" & nchar(r) == 3) {  
     query <- glue_sql(
-      query,
-      " AND reporter_iso = {r}",
+      query, 
+      " AND reporter_iso = {r}", 
       .con = con
     )
   }
   
-  if (p != "all") {
+  if (r != "all" & nchar(r) == 4) {  
+    r2 <- switch(
+      r, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
     query <- glue_sql(
-      query,
-      " AND partner_iso = {p}",
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = r2$country_iso,
+      .con = con
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 3) {  
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso = {p}", 
+      .con = con
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 4) {  
+    p2 <- switch(
+      p, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = p2$country_iso,
       .con = con
     )
   }
@@ -503,43 +584,40 @@ function(y = NULL, r = NULL, p = NULL, l = NULL) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
+#* @param c Commodity code
 #* @param l Commodity code length
 #* @get /yrpc
-function(y = NULL, r = NULL, p = NULL, c = "all", g = "all", l = 4) {
+function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 3))
-  p <- tolower(substr(as.character(p), 1, 3))
+  r <- tolower(substr(as.character(r), 1, 4))
+  p <- tolower(substr(as.character(p), 1, 4))
   c <- tolower(substr(as.character(c), 1, 6))
-  g <- tolower(substr(as.character(g), 1, 3))
   l <- tolower(substr(as.character(l), 1, 3))
   
+  if (nchar(c) == 2) { l <- "all" }
+  
   if (nchar(y) != 4 | !y %in% 1962:2016) {
-    return("The specified year is not a valid integer value.")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (nchar(r) != 3 | !r %in% c(countries_data$country_iso, "all")) {
-    return("The specified reporter is not a valid ISO code, please check /countries.")
+  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (nchar(p) != 3 | !p %in% c(countries_data$country_iso, "all")) {
-    return("The specified reporter is not a valid ISO code, please check /countries.")
+  if (!nchar(p) <= 4 | !p %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, "all")) {
-    return("The specified commodity is not a valid string.")
-    stop()
-  }
-  
-  if (!nchar(g) <= 3 | !g %in% c(group_codes, "all")) {
-    return("The specified group is not a valid string.")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
+    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value.")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
   
@@ -552,23 +630,59 @@ function(y = NULL, r = NULL, p = NULL, c = "all", g = "all", l = 4) {
     .con = con
   )
   
-  if (r != "all") {
+  if (r != "all" & nchar(r) == 3) {  
     query <- glue_sql(
-      query,
-      " AND reporter_iso = {r}",
+      query, 
+      " AND reporter_iso = {r}", 
       .con = con
     )
   }
   
-  if (p != "all") {
+  if (r != "all" & nchar(r) == 4) {  
+    r2 <- switch(
+      r, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
     query <- glue_sql(
-      query,
-      " AND partner_iso = {p}",
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = r2$country_iso,
       .con = con
     )
   }
   
-  if (c != "all") {  
+  if (p != "all" & nchar(p) == 3) {  
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso = {p}", 
+      .con = con
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 4) {  
+    p2 <- switch(
+      p, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = p2$country_iso,
+      .con = con
+    )
+  }
+  
+  if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
       " AND commodity_code = {c}",
@@ -576,10 +690,10 @@ function(y = NULL, r = NULL, p = NULL, c = "all", g = "all", l = 4) {
     )
   }
   
-  if (g != "all") {  
+  if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {g}",
+      " AND LEFT(commodity_code, 2) = {c}",
       .con = con
     )
   }
