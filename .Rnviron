@@ -1,4 +1,0 @@
-dbhost <- "localhost"
-dbusr <- "plumber"
-dbpwd <- "VeBFkand"
-dbname <- "trade_statistics"
