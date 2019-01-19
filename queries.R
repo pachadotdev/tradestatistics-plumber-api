@@ -214,6 +214,10 @@ function(y = NULL, c = "all", l = 4) {
   
   data <- dbGetQuery(con, query)
   
+  if (nrow(data) == 0) {
+    data <- "No data available for these filtering parameters."
+  }
+  
   return(data)
 }
 
@@ -316,6 +320,10 @@ function(y = NULL, r = NULL) {
   }
   
   data <- dbGetQuery(con, query)
+  
+  if (nrow(data) == 0) {
+    data <- "No data available for these filtering parameters."
+  }
   
   return(data)
 }
@@ -484,6 +492,10 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   
   data <- dbGetQuery(con, query)
   
+  if (nrow(data) == 0) {
+    data <- "No data available for these filtering parameters."
+  }
+  
   return(data)
 }
 
@@ -574,6 +586,10 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
   }
   
   data <- dbGetQuery(con, query)
+  
+  if (nrow(data) == 0) {
+    data <- "No data available for these filtering parameters."
+  }
   
   return(data)
 }
@@ -707,6 +723,10 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   }
   
   data <- dbGetQuery(con, query)
+  
+  if (nrow(data) == 0) {
+    data <- "No data available for these filtering parameters."
+  }
   
   return(data)
 }
