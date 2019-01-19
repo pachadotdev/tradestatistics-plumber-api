@@ -215,7 +215,11 @@ function(y = NULL, c = "all", l = 4) {
   data <- dbGetQuery(con, query)
   
   if (nrow(data) == 0) {
-    data <- "No data available for these filtering parameters."
+    data <- tibble(
+      year = y,
+      commodity_code = c,
+      observation = "No data available for these filtering parameters"
+    )
   }
   
   return(data)
@@ -322,7 +326,11 @@ function(y = NULL, r = NULL) {
   data <- dbGetQuery(con, query)
   
   if (nrow(data) == 0) {
-    data <- "No data available for these filtering parameters."
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      observation = "No data available for these filtering parameters"
+    )
   }
   
   return(data)
@@ -493,7 +501,12 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   data <- dbGetQuery(con, query)
   
   if (nrow(data) == 0) {
-    data <- "No data available for these filtering parameters."
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      commodity_code = c,
+      observation = "No data available for these filtering parameters"
+    )
   }
   
   return(data)
@@ -588,7 +601,12 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
   data <- dbGetQuery(con, query)
   
   if (nrow(data) == 0) {
-    data <- "No data available for these filtering parameters."
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      partner_iso = p,
+      observation = "No data available for these filtering parameters"
+    )
   }
   
   return(data)
@@ -725,7 +743,13 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   data <- dbGetQuery(con, query)
   
   if (nrow(data) == 0) {
-    data <- "No data available for these filtering parameters."
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      partner_iso = p,
+      commodity_code = c,
+      observation = "No data available for these filtering parameters"
+    )
   }
   
   return(data)
