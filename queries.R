@@ -336,6 +336,74 @@ function(y = NULL, r = NULL) {
   return(data)
 }
 
+# YR short (for Shiny) ----------------------------------------------------
+
+#* Echo back the result of a query on yr table
+#* @param y Year
+#* @param r Reporter ISO
+#* @get /yr_short
+function(y = NULL, r = NULL) {
+  y <- as.integer(y)
+  r <- tolower(substr(as.character(r), 1, 4))
+  
+  if (nchar(y) != 4 | !y %in% 1962:2016) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    stop()
+  }
+  
+  query <- glue_sql(
+    "
+    SELECT year, reporter_iso, export_value_usd, import_value_usd
+    FROM public.hs07_yr 
+    WHERE year = {y}
+    ", 
+    .con = con
+  )
+  
+  if (r != "all" & nchar(r) == 3) {  
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso = {r}", 
+      .con = con
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {  
+    r2 <- switch(
+      r, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = r2$country_iso,
+      .con = con
+    )
+  }
+  
+  data <- dbGetQuery(con, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
 # Reporters ---------------------------------------------------------------
 
 #* Echo back the result of a query on yr table
