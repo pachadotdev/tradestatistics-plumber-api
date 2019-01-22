@@ -106,6 +106,18 @@ groups_data <- products_data %>%
     product_fullname_english = group_name
   )
 
+# List of communities (for Data Visualization) ----------------------------
+
+communities_query <- glue_sql(
+  "
+  SELECT *
+  FROM public.attributes_communities
+  ",
+  .con = con
+)
+
+communities_data <- dbGetQuery(con, communities_query)
+
 # Hello World -------------------------------------------------------------
 
 #* Echo back Hello World!
@@ -115,18 +127,11 @@ function() {
   paste("Hello World! This is Open Trade Statistics' API")
 }
 
-# API status --------------------------------------------------------------
-
-#* Echo back API status
-#* @get /status
-function() {
-  paste("The API is working :)")
-}
-
 # Countries ---------------------------------------------------------------
 
 #* Echo back the result of a query on attributes_countries table
 #* @get /countries
+
 function() {
   countries_data %>% 
     bind_rows(continents_data)
@@ -134,20 +139,32 @@ function() {
 
 # Countries short (for Shiny) ---------------------------------------------
 
-#* Echo back the result of a query on attributes_countries table
-#* @get /countries_short
-function() {
-  countries_data %>% 
-    select(country_iso, country_name_english, country_fullname_english)
-}
+# not currently in use
+# #* Echo back the result of a query on attributes_countries table
+# #* @get /countries_short
+# 
+# function() {
+#   countries_data %>%
+#     select(country_iso, country_name_english, country_fullname_english)
+# }
 
 # Products ----------------------------------------------------------------
 
 #* Echo back the result of a query on attributes_countries table
 #* @get /products
+
 function() {
   products_data %>% 
     bind_rows(groups_data)
+}
+
+# Communities -------------------------------------------------------------
+
+#* Echo back the result of a query on attributes_countries table
+#* @get /communities
+
+function() {
+  communities_data
 }
 
 # YC ----------------------------------------------------------------------
@@ -157,6 +174,7 @@ function() {
 #* @param c Commodity code
 #* @param l Commodity code length
 #* @get /yc
+
 function(y = NULL, c = "all", l = 4) {
   y <- as.integer(y)
   c <- tolower(substr(as.character(c), 1, 6))
@@ -274,6 +292,7 @@ function(y = 2016) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @get /yr
+
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 4))
@@ -342,6 +361,7 @@ function(y = NULL, r = NULL) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @get /yr_short
+
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 4))
@@ -408,6 +428,7 @@ function(y = NULL, r = NULL) {
 
 #* Echo back the result of a query on yr table
 #* @get /reporters
+
 function(y = 2016) {
   y <- as.integer(y)
   
@@ -435,6 +456,7 @@ function(y = 2016) {
 #* Echo back the result of a query on yr table
 #* @param y Year
 #* @get /country_rankings
+
 function(y = 2016) {
   y <- as.integer(y)
   
@@ -479,6 +501,7 @@ function(y = 2016) {
 #* @param c Commodity code
 #* @param l Commodity code length
 #* @get /yrc
+
 function(y = NULL, r = NULL, c = "all", l = 4) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 4))
@@ -588,6 +611,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
 #* @param p Partner ISO
 #* @param l Commodity code length
 #* @get /yrp
+
 function(y = NULL, r = NULL, p = NULL, l = 4) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 4))
@@ -689,6 +713,7 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
 #* @param c Commodity code
 #* @param l Commodity code length
 #* @get /yrpc
+
 function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 4))
