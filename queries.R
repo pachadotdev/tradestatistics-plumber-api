@@ -28,6 +28,11 @@ con <- dbConnect(
   dbname = dbname
 )
 
+# Available years in the DB -----------------------------------------------
+
+min_year <- dbGetQuery(con, glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% as.numeric()
+max_year <- dbGetQuery(con, glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% as.numeric()
+
 # List of countries (to filter API parameters) ----------------------------
 
 countries_query <- glue_sql(
@@ -103,7 +108,7 @@ groups_data <- products_data %>%
   add_row(group_code = "all", group_name = "Alias for all codes") %>% 
   rename(
     commodity_code = group_code,
-    product_fullname_english = group_name
+    commodity_fullname_english = group_name
   )
 
 # List of communities (for Data Visualization) ----------------------------
@@ -117,6 +122,18 @@ communities_query <- glue_sql(
 )
 
 communities_data <- dbGetQuery(con, communities_query)
+
+# List of short product names (for Data Visualization) --------------------
+
+products_shotnames_query <- glue_sql(
+  "
+  SELECT *
+  FROM public.attributes_products_shortnames
+  ",
+  .con = con
+)
+
+products_shotnames_data <- dbGetQuery(con, products_shotnames_query)
 
 # Hello World -------------------------------------------------------------
 
@@ -137,9 +154,9 @@ function() {
     bind_rows(continents_data)
 }
 
-# Countries short (for Shiny) ---------------------------------------------
 
-# not currently in use
+# Countries short (for Shiny) NOT IN USE ----------------------------------
+
 # #* Echo back the result of a query on attributes_countries table
 # #* @get /countries_short
 # 
@@ -150,7 +167,7 @@ function() {
 
 # Products ----------------------------------------------------------------
 
-#* Echo back the result of a query on attributes_countries table
+#* Echo back the result of a query on attributes_products table
 #* @get /products
 
 function() {
@@ -160,11 +177,20 @@ function() {
 
 # Communities -------------------------------------------------------------
 
-#* Echo back the result of a query on attributes_countries table
+#* Echo back the result of a query on attributes_communities table
 #* @get /communities
 
 function() {
   communities_data
+}
+
+# Short names -------------------------------------------------------------
+
+#* Echo back the result of a query on attributes_products_shortnames table
+#* @get /products_shortnames
+
+function() {
+  products_shotnames_data
 }
 
 # YC ----------------------------------------------------------------------
@@ -182,7 +208,7 @@ function(y = NULL, c = "all", l = 4) {
   
   if (nchar(c) == 2) { l <- "all" }
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
@@ -249,10 +275,10 @@ function(y = NULL, c = "all", l = 4) {
 #* @param y Year
 #* @get /product_rankings
 
-function(y = 2016) {
+function(y = 2017) {
   y <- as.integer(y)
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value.")
     stop()
   }
@@ -297,7 +323,7 @@ function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 4))
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
@@ -366,7 +392,7 @@ function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- tolower(substr(as.character(r), 1, 4))
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
@@ -429,10 +455,10 @@ function(y = NULL, r = NULL) {
 #* Echo back the result of a query on yr table
 #* @get /reporters
 
-function(y = 2016) {
+function(y = 2017) {
   y <- as.integer(y)
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value.")
     stop()
   }
@@ -457,10 +483,10 @@ function(y = 2016) {
 #* @param y Year
 #* @get /country_rankings
 
-function(y = 2016) {
+function(y = 2017) {
   y <- as.integer(y)
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value.")
     stop()
   }
@@ -510,7 +536,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   
   if (nchar(c) == 2) { l <- "all" }
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
@@ -603,14 +629,14 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   return(data)
 }
 
-# YRC short (for Shiny) ---------------------------------------------------
+# YRC exports (for Shiny) -------------------------------------------------
 
 #* Echo back the result of a query on yrc table
 #* @param y Year
 #* @param r Reporter ISO
 #* @param c Commodity code
 #* @param l Commodity code length
-#* @get /yrc_short
+#* @get /yrc_exports
 
 function(y = NULL, r = NULL, c = "all", l = 4) {
   y <- as.integer(y)
@@ -620,7 +646,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   
   if (nchar(c) == 2) { l <- "all" }
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
@@ -642,7 +668,117 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   
   query <- glue_sql(
     "
-    SELECT year, reporter_iso, commodity_code, export_value_usd, import_value_usd
+    SELECT year, reporter_iso, commodity_code, export_value_usd
+    FROM public.hs07_yrc
+    WHERE year = {y}
+    ", 
+    .con = con
+  )
+  
+  if (r != "all" & nchar(r) == 3) {  
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso = {r}", 
+      .con = con
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {  
+    r2 <- switch(
+      r, 
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query, 
+      " AND reporter_iso IN ({vals*})", 
+      vals = r2$country_iso,
+      .con = con
+    )
+  }
+  
+  if (c != "all" & nchar(c) != 2) {
+    query <- glue_sql(
+      query, 
+      " AND commodity_code = {c}",
+      .con = con
+    )
+  }
+  
+  if (c != "all" & nchar(c) == 2) {
+    query <- glue_sql(
+      query, 
+      " AND LEFT(commodity_code, 2) = {c}",
+      .con = con
+    )
+  }
+  
+  if (l != "all") {
+    query <- glue_sql(
+      query,
+      " AND commodity_code_length = {l}",
+      .con = con
+    )
+  }
+  
+  data <- dbGetQuery(con, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      commodity_code = c,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
+# YRC imports (for Shiny) -------------------------------------------------
+
+#* Echo back the result of a query on yrc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param c Commodity code
+#* @param l Commodity code length
+#* @get /yrc_imports
+
+function(y = NULL, r = NULL, c = "all", l = 4) {
+  y <- as.integer(y)
+  r <- tolower(substr(as.character(r), 1, 4))
+  c <- tolower(substr(as.character(c), 1, 6))
+  l <- tolower(substr(as.character(l), 1, 3))
+  
+  if (nchar(c) == 2) { l <- "all" }
+  
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    stop()
+  }
+  
+  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
+    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
+    stop()
+  }
+  
+  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    stop()
+  }
+  
+  query <- glue_sql(
+    "
+    SELECT year, reporter_iso, commodity_code, import_value_usd
     FROM public.hs07_yrc
     WHERE year = {y}
     ", 
@@ -727,7 +863,7 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
   r <- tolower(substr(as.character(r), 1, 4))
   p <- tolower(substr(as.character(p), 1, 4))
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
@@ -833,7 +969,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   
   if (nchar(c) == 2) { l <- "all" }
   
-  if (nchar(y) != 4 | !y %in% 1962:2016) {
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
     stop()
   }
@@ -956,4 +1092,52 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   }
   
   return(data)
+}
+
+# Available tables --------------------------------------------------------
+
+#* All the tables generated by this API
+#* @get /tables
+
+function() {
+  tables <- tibble(
+    table = c(
+      "countries",
+      "products",
+      "communities",
+      "reporters",
+      "country_rankings",
+      "product_rankings",
+      "yrpc",
+      "yrp",
+      "yrc",
+      "yrc_exports",
+      "yrc_imports",
+      "yr",
+      "yr_short",
+      "yc"
+    ),
+    description = c(
+      "Countries metadata",
+      "Product metadata",
+      "Product communities",
+      "Reporting countries",
+      "Ranking of countries",
+      "Ranking of products",
+      "Bilateral trade at commodity level (Year - Reporter - Partner - Commodity)",
+      "Bilateral trade at aggregated level (Year - Reporter - Partner)",
+      "Bilateral trade at aggregated level (Year - Reporter - Partner), exports only",
+      "Bilateral trade at aggregated level (Year - Reporter - Partner), imports only",
+      "Reporter trade at commodity level (Year - Reporter - Commodity)",
+      "Reporter trade at aggregated level (Year - Reporter)",
+      "Reporter trade at aggregated level (Year - Reporter), imports and exports only",
+      "Commodity trade at aggregated level (Year - Commodity)"
+    ),
+    source = c(
+      rep("UN Comtrade", 2),
+      "Harvard's Center for International Development",
+      "UN Comtrade",
+      rep("Open Trade Statistics", 10)
+    )
+  )
 }
