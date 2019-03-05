@@ -107,8 +107,8 @@ groups_data <- products_data %>%
   mutate(group_name = paste("Alias for all codes in the group", group_name)) %>% 
   add_row(group_code = "all", group_name = "Alias for all codes") %>% 
   rename(
-    commodity_code = group_code,
-    commodity_fullname_english = group_name
+    product_code = group_code,
+    product_fullname_english = group_name
   )
 
 # List of communities (for Data Visualization) ----------------------------
@@ -197,8 +197,8 @@ function() {
 
 #* Echo back the result of a query on yc table
 #* @param y Year
-#* @param c Commodity code
-#* @param l Commodity code length
+#* @param c Product code
+#* @param l Product code length
 #* @get /yc
 
 function(y = NULL, c = "all", l = 4) {
@@ -209,17 +209,17 @@ function(y = NULL, c = "all", l = 4) {
   if (nchar(c) == 2) { l <- "all" }
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
-    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -235,7 +235,7 @@ function(y = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
-      " AND commodity_code = {c}",
+      " AND product_code = {c}",
       .con = con
     )
   }
@@ -243,7 +243,7 @@ function(y = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {c}",
+      " AND LEFT(product_code, 2) = {c}",
       .con = con
     )
   }
@@ -251,7 +251,7 @@ function(y = NULL, c = "all", l = 4) {
   if (l != "all") {  
     query <- glue_sql(
       query, 
-      " AND commodity_code_length = {l}",
+      " AND product_code_length = {l}",
       .con = con
     )
   }
@@ -261,7 +261,7 @@ function(y = NULL, c = "all", l = 4) {
   if (nrow(data) == 0) {
     data <- tibble(
       year = y,
-      commodity_code = c,
+      product_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -287,10 +287,10 @@ function(y = 2017) {
   
   query <- glue_sql(
     "
-    SELECT year, commodity_code, export_value_usd, import_value_usd, pci_4_digits_commodity_code
+    SELECT year, product_code, export_value_usd, import_value_usd, pci_4_digits_product_code
     FROM public.hs07_yc
     WHERE year = {y}
-    AND commodity_code_length = 4
+    AND product_code_length = 4
     ",
     .con = con
   )
@@ -306,8 +306,8 @@ function(y = 2017) {
     arrange(-import_value_usd) %>%
     mutate(import_value_usd_rank = row_number()) %>%
     
-    arrange(-pci_4_digits_commodity_code) %>%
-    mutate(pci_4_digits_commodity_code_rank = row_number())
+    arrange(-pci_4_digits_product_code) %>%
+    mutate(pci_4_digits_product_code_rank = row_number())
   
   return(data)
 }
@@ -324,12 +324,12 @@ function(y = NULL, r = NULL) {
   r <- tolower(substr(as.character(r), 1, 4))
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -393,12 +393,12 @@ function(y = NULL, r = NULL) {
   r <- tolower(substr(as.character(r), 1, 4))
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -495,7 +495,7 @@ function(y = 2017) {
   
   query <- glue_sql(
     "
-    SELECT year, reporter_iso, export_value_usd, import_value_usd, eci_4_digits_commodity_code
+    SELECT year, reporter_iso, export_value_usd, import_value_usd, eci_4_digits_product_code
     FROM public.hs07_yr
     WHERE year = {y}
     ",
@@ -513,8 +513,8 @@ function(y = 2017) {
     arrange(-import_value_usd) %>%
     mutate(import_value_usd_rank = row_number()) %>%
     
-    arrange(-eci_4_digits_commodity_code) %>%
-    mutate(eci_4_digits_commodity_code_rank = row_number())
+    arrange(-eci_4_digits_product_code) %>%
+    mutate(eci_4_digits_product_code_rank = row_number())
   
   return(data)
 }
@@ -524,8 +524,8 @@ function(y = 2017) {
 #* Echo back the result of a query on yrc table
 #* @param y Year
 #* @param r Reporter ISO
-#* @param c Commodity code
-#* @param l Commodity code length
+#* @param c Product code
+#* @param l Product code length
 #* @get /yrc
 
 function(y = NULL, r = NULL, c = "all", l = 4) {
@@ -537,22 +537,22 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (nchar(c) == 2) { l <- "all" }
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
-    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -594,7 +594,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
-      " AND commodity_code = {c}",
+      " AND product_code = {c}",
       .con = con
     )
   }
@@ -602,7 +602,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {c}",
+      " AND LEFT(product_code, 2) = {c}",
       .con = con
     )
   }
@@ -610,7 +610,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (l != "all") {
     query <- glue_sql(
       query,
-      " AND commodity_code_length = {l}",
+      " AND product_code_length = {l}",
       .con = con
     )
   }
@@ -621,7 +621,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     data <- tibble(
       year = y,
       reporter_iso = r,
-      commodity_code = c,
+      product_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -634,8 +634,8 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
 #* Echo back the result of a query on yrc table
 #* @param y Year
 #* @param r Reporter ISO
-#* @param c Commodity code
-#* @param l Commodity code length
+#* @param c Product code
+#* @param l Product code length
 #* @get /yrc_exports
 
 function(y = NULL, r = NULL, c = "all", l = 4) {
@@ -647,28 +647,28 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (nchar(c) == 2) { l <- "all" }
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
-    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   query <- glue_sql(
     "
-    SELECT year, reporter_iso, commodity_code, export_value_usd
+    SELECT year, reporter_iso, product_code, export_value_usd
     FROM public.hs07_yrc
     WHERE year = {y}
     ", 
@@ -704,7 +704,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
-      " AND commodity_code = {c}",
+      " AND product_code = {c}",
       .con = con
     )
   }
@@ -712,7 +712,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {c}",
+      " AND LEFT(product_code, 2) = {c}",
       .con = con
     )
   }
@@ -720,7 +720,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (l != "all") {
     query <- glue_sql(
       query,
-      " AND commodity_code_length = {l}",
+      " AND product_code_length = {l}",
       .con = con
     )
   }
@@ -731,7 +731,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     data <- tibble(
       year = y,
       reporter_iso = r,
-      commodity_code = c,
+      product_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -744,8 +744,8 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
 #* Echo back the result of a query on yrc table
 #* @param y Year
 #* @param r Reporter ISO
-#* @param c Commodity code
-#* @param l Commodity code length
+#* @param c Product code
+#* @param l Product code length
 #* @get /yrc_imports
 
 function(y = NULL, r = NULL, c = "all", l = 4) {
@@ -757,28 +757,28 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (nchar(c) == 2) { l <- "all" }
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
-    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   query <- glue_sql(
     "
-    SELECT year, reporter_iso, commodity_code, import_value_usd
+    SELECT year, reporter_iso, product_code, import_value_usd
     FROM public.hs07_yrc
     WHERE year = {y}
     ", 
@@ -814,7 +814,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
-      " AND commodity_code = {c}",
+      " AND product_code = {c}",
       .con = con
     )
   }
@@ -822,7 +822,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {c}",
+      " AND LEFT(product_code, 2) = {c}",
       .con = con
     )
   }
@@ -830,7 +830,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   if (l != "all") {
     query <- glue_sql(
       query,
-      " AND commodity_code_length = {l}",
+      " AND product_code_length = {l}",
       .con = con
     )
   }
@@ -841,7 +841,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     data <- tibble(
       year = y,
       reporter_iso = r,
-      commodity_code = c,
+      product_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -855,7 +855,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
-#* @param l Commodity code length
+#* @param l Product code length
 #* @get /yrp
 
 function(y = NULL, r = NULL, p = NULL, l = 4) {
@@ -864,17 +864,17 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
   p <- tolower(substr(as.character(p), 1, 4))
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(p) <= 4 | !p %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -956,8 +956,8 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
-#* @param c Commodity code
-#* @param l Commodity code length
+#* @param c Product code
+#* @param l Product code length
 #* @get /yrpc
 
 function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
@@ -970,27 +970,27 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   if (nchar(c) == 2) { l <- "all" }
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(p) <= 4 | !p %in% c(countries_data$country_iso, continents_data$country_iso)) {
-    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$commodity_code, groups_data$commodity_code)) {
-    return("The specified commodity is not a valid string. Read the documentation: tradestatistics.github.io/documentation")
+  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
   if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.github.io/documentation")
+    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -1058,7 +1058,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query, 
-      " AND commodity_code = {c}",
+      " AND product_code = {c}",
       .con = con
     )
   }
@@ -1066,7 +1066,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   if (c != "all" & nchar(c) == 2) {
     query <- glue_sql(
       query, 
-      " AND LEFT(commodity_code, 2) = {c}",
+      " AND LEFT(product_code, 2) = {c}",
       .con = con
     )
   }
@@ -1074,7 +1074,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   if (l != "all") {
     query <- glue_sql(
       query,
-      " AND commodity_code_length = {l}",
+      " AND product_code_length = {l}",
       .con = con
     )
   }
@@ -1086,7 +1086,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
       year = y,
       reporter_iso = r,
       partner_iso = p,
-      commodity_code = c,
+      product_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -1124,14 +1124,14 @@ function() {
       "Reporting countries",
       "Ranking of countries",
       "Ranking of products",
-      "Bilateral trade at commodity level (Year - Reporter - Partner - Commodity)",
-      "Bilateral trade at aggregated level (Year - Reporter - Partner)",
-      "Bilateral trade at aggregated level (Year - Reporter - Partner), exports only",
-      "Bilateral trade at aggregated level (Year - Reporter - Partner), imports only",
-      "Reporter trade at commodity level (Year - Reporter - Commodity)",
-      "Reporter trade at aggregated level (Year - Reporter)",
-      "Reporter trade at aggregated level (Year - Reporter), imports and exports only",
-      "Commodity trade at aggregated level (Year - Commodity)"
+      "Bilateral trade at product level (Year, Reporter, Partner and Product Code)",
+      "Bilateral trade at aggregated level (Year, Reporter and Partner)",
+      "Bilateral trade at aggregated level (Year, Reporter and Partner), exports only",
+      "Bilateral trade at aggregated level (Year, Reporter and Partner), imports only",
+      "Reporter trade at product level (Year, Reporter and Product Code)",
+      "Reporter trade at aggregated level (Year and Reporter)",
+      "Reporter trade at aggregated level (Year and Reporter), imports and exports only",
+      "Product trade at aggregated level (Year and Product Code)"
     ),
     source = c(
       rep("UN Comtrade", 2),
