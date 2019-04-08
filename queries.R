@@ -5,6 +5,7 @@
 library(dplyr)
 library(glue)
 library(RPostgreSQL)
+library(tradestatistics)
 
 # Read credentials from file in .gitignore --------------------------------
 
@@ -35,44 +36,34 @@ max_year <- dbGetQuery(con, glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>
 
 # List of countries (to filter API parameters) ----------------------------
 
-countries_query <- glue_sql(
-  "
-  SELECT *
-  FROM public.attributes_countries
-  ",
-  .con = con
-)
-
-countries_data <- dbGetQuery(con, countries_query)
-
 # create vectors by continent to filter by using meta variables like americas, africa, etc
 
 ## Africa
-countries_africa <- countries_data %>% 
+countries_africa <- ots_attributes_countries %>% 
   filter(continent == "Africa") %>% 
   select(country_iso) %>% 
   as.vector()
 
 ## Americas
-countries_americas <- countries_data %>% 
+countries_americas <- ots_attributes_countries %>% 
   filter(continent == "Americas") %>% 
   select(country_iso) %>% 
   as.vector()
 
 ## Asia
-countries_asia <- countries_data %>% 
+countries_asia <- ots_attributes_countries %>% 
   filter(continent == "Asia") %>% 
   select(country_iso) %>% 
   as.vector()
 
 ## Europe
-countries_europe <- countries_data %>% 
+countries_europe <- ots_attributes_countries %>% 
   filter(continent == "Europe") %>% 
   select(country_iso) %>% 
   as.vector()
 
 ## Oceania
-countries_oceania <- countries_data %>% 
+countries_oceania <- ots_attributes_countries %>% 
   filter(continent == "Oceania") %>% 
   select(country_iso) %>% 
   as.vector()
@@ -89,59 +80,13 @@ continents_data <- tibble(
   )
 )
 
-# List of products (to filter API parameters) -----------------------------
-
-products_query <- glue_sql(
-  "
-  SELECT *
-  FROM public.attributes_products
-  ",
-  .con = con
-)
-
-products_data <- dbGetQuery(con, products_query)
-
-groups_data <- products_data %>% 
-  select(group_code, group_name) %>% 
-  distinct() %>% 
-  mutate(group_name = paste("Alias for all codes in the group", group_name)) %>% 
-  add_row(group_code = "all", group_name = "Alias for all codes") %>% 
-  rename(
-    product_code = group_code,
-    product_fullname_english = group_name
-  )
-
-# List of communities (for Data Visualization) ----------------------------
-
-communities_query <- glue_sql(
-  "
-  SELECT *
-  FROM public.attributes_communities
-  ",
-  .con = con
-)
-
-communities_data <- dbGetQuery(con, communities_query)
-
-# List of short product names (for Data Visualization) --------------------
-
-products_shotnames_query <- glue_sql(
-  "
-  SELECT *
-  FROM public.attributes_products_shortnames
-  ",
-  .con = con
-)
-
-products_shotnames_data <- dbGetQuery(con, products_shotnames_query)
-
 # Hello World -------------------------------------------------------------
 
 #* Echo back Hello World!
 #* @get /
 
 function() {
-  paste("Hello World! This is Open Trade Statistics' API")
+  paste("Hello World! Welcome to Open Trade Statistics API")
 }
 
 # Countries ---------------------------------------------------------------
@@ -150,20 +95,8 @@ function() {
 #* @get /countries
 
 function() {
-  countries_data %>% 
-    bind_rows(continents_data)
+  ots_attributes_countries
 }
-
-
-# Countries short (for Shiny) NOT IN USE ----------------------------------
-
-# #* Echo back the result of a query on attributes_countries table
-# #* @get /countries_short
-# 
-# function() {
-#   countries_data %>%
-#     select(country_iso, country_name_english, country_fullname_english)
-# }
 
 # Products ----------------------------------------------------------------
 
@@ -171,8 +104,7 @@ function() {
 #* @get /products
 
 function() {
-  products_data %>% 
-    bind_rows(groups_data)
+  ots_attributes_products
 }
 
 # Communities -------------------------------------------------------------
@@ -181,16 +113,16 @@ function() {
 #* @get /communities
 
 function() {
-  communities_data
+  ots_attributes_communities
 }
 
-# Short names -------------------------------------------------------------
+# Product shortnames ------------------------------------------------------
 
 #* Echo back the result of a query on attributes_products_shortnames table
-#* @get /products_shortnames
+#* @get /product_shortnames
 
 function() {
-  products_shotnames_data
+  ots_attributes_product_shortnames
 }
 
 # YC ----------------------------------------------------------------------
@@ -213,7 +145,7 @@ function(y = NULL, c = "all", l = 4) {
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -328,7 +260,7 @@ function(y = NULL, r = NULL) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -351,7 +283,7 @@ function(y = NULL, r = NULL) {
   }
   
   if (r != "all" & nchar(r) == 4) {  
-    r2 <- switch(
+    r_expanded_alias <- switch(
       r, 
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -363,7 +295,7 @@ function(y = NULL, r = NULL) {
     query <- glue_sql(
       query, 
       " AND reporter_iso IN ({vals*})", 
-      vals = r2$country_iso,
+      vals = r_expanded_alias$country_iso,
       .con = con
     )
   }
@@ -381,7 +313,7 @@ function(y = NULL, r = NULL) {
   return(data)
 }
 
-# YR short (for Shiny) ----------------------------------------------------
+# YR short ----------------------------------------------------------------
 
 #* Echo back the result of a query on yr table
 #* @param y Year
@@ -397,7 +329,7 @@ function(y = NULL, r = NULL) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -420,7 +352,7 @@ function(y = NULL, r = NULL) {
   }
   
   if (r != "all" & nchar(r) == 4) {  
-    r2 <- switch(
+    r_expanded_alias <- switch(
       r, 
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -432,7 +364,7 @@ function(y = NULL, r = NULL) {
     query <- glue_sql(
       query, 
       " AND reporter_iso IN ({vals*})", 
-      vals = r2$country_iso,
+      vals = r_expanded_alias$country_iso,
       .con = con
     )
   }
@@ -541,12 +473,12 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -574,7 +506,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   }
   
   if (r != "all" & nchar(r) == 4) {  
-    r2 <- switch(
+    r_expanded_alias <- switch(
       r, 
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -586,7 +518,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query, 
       " AND reporter_iso IN ({vals*})", 
-      vals = r2$country_iso,
+      vals = r_expanded_alias$country_iso,
       .con = con
     )
   }
@@ -651,12 +583,12 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -684,7 +616,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   }
   
   if (r != "all" & nchar(r) == 4) {  
-    r2 <- switch(
+    r_expanded_alias <- switch(
       r, 
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -696,7 +628,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query, 
       " AND reporter_iso IN ({vals*})", 
-      vals = r2$country_iso,
+      vals = r_expanded_alias$country_iso,
       .con = con
     )
   }
@@ -761,12 +693,12 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -794,7 +726,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   }
   
   if (r != "all" & nchar(r) == 4) {  
-    r2 <- switch(
+    r_expanded_alias <- switch(
       r, 
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -806,7 +738,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query, 
       " AND reporter_iso IN ({vals*})", 
-      vals = r2$country_iso,
+      vals = r_expanded_alias$country_iso,
       .con = con
     )
   }
@@ -868,12 +800,12 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(p) <= 4 | !p %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(p) <= 4 | !p %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -893,7 +825,7 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
   }
   
   if (r != "all" & nchar(r) == 4) {  
-    r2 <- switch(
+    r_expanded_alias <- switch(
       r, 
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -905,7 +837,7 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
     query <- glue_sql(
       query, 
       " AND reporter_iso IN ({vals*})", 
-      vals = r2$country_iso,
+      vals = r_expanded_alias$country_iso,
       .con = con
     )
   }
@@ -974,17 +906,17 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(p) <= 4 | !p %in% c(countries_data$country_iso, continents_data$country_iso)) {
+  if (!nchar(p) <= 4 | !p %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(c) <= 6 | !c %in% c(products_data$product_code, groups_data$product_code)) {
+  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -1012,7 +944,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   }
   
   if (r != "all" & nchar(r) == 4) {  
-    r2 <- switch(
+    r_expanded_alias <- switch(
       r, 
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -1024,7 +956,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query, 
       " AND reporter_iso IN ({vals*})", 
-      vals = r2$country_iso,
+      vals = r_expanded_alias$country_iso,
       .con = con
     )
   }
@@ -1100,44 +1032,14 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
 #* @get /tables
 
 function() {
-  tables <- tibble(
-    table = c(
-      "countries",
-      "products",
-      "communities",
-      "reporters",
-      "country_rankings",
-      "product_rankings",
-      "yrpc",
-      "yrp",
-      "yrc",
-      "yrc_exports",
-      "yrc_imports",
-      "yr",
-      "yr_short",
-      "yc"
-    ),
-    description = c(
-      "Countries metadata",
-      "Product metadata",
-      "Product communities",
-      "Reporting countries",
-      "Ranking of countries",
-      "Ranking of products",
-      "Bilateral trade at product level (Year, Reporter, Partner and Product Code)",
-      "Bilateral trade at aggregated level (Year, Reporter and Partner)",
-      "Bilateral trade at aggregated level (Year, Reporter and Partner), exports only",
-      "Bilateral trade at aggregated level (Year, Reporter and Partner), imports only",
-      "Reporter trade at product level (Year, Reporter and Product Code)",
-      "Reporter trade at aggregated level (Year and Reporter)",
-      "Reporter trade at aggregated level (Year and Reporter), imports and exports only",
-      "Product trade at aggregated level (Year and Product Code)"
-    ),
-    source = c(
-      rep("UN Comtrade", 2),
-      "Harvard's Center for International Development",
-      "UN Comtrade",
-      rep("Open Trade Statistics", 10)
-    )
-  )
+  ots_attributes_tables
+}
+
+# Year range --------------------------------------------------------------
+
+#* All the tables generated by this API
+#* @get /year_range
+
+function() {
+  tibble(year = c(min_year, max_year))
 }
