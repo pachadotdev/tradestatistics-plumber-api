@@ -75,11 +75,11 @@ groups_data <- products_data %>%
   rename(
     product_code = group_code,
     product_fullname_english = group_name
-  )
+  ) %>% 
+  arrange(product_code)
 
 ots_attributes_products <-  products_data %>% 
   bind_rows(groups_data)
-
 
 # Communities -------------------------------------------------------------
 

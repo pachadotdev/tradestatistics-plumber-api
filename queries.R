@@ -6,10 +6,11 @@ library(dplyr)
 library(glue)
 library(RPostgreSQL)
 library(tradestatistics)
+library(highcharter)
 
 # Read credentials from file in .gitignore --------------------------------
 
-readRenviron("/api")
+readRenviron("/apis/tradestatistics")
 
 # DB connection parameters ------------------------------------------------
 
@@ -28,6 +29,30 @@ con <- dbConnect(
   password = dbpwd,
   dbname = dbname
 )
+
+# Clean inputs ------------------------------------------------------------
+
+clean_char_input <- function(x, i, j) {
+  y <- iconv(x, to = "ASCII//TRANSLIT", sub = " ")
+  y <- stringr::str_replace_all(y, "[^[:alpha:]]", " ")
+  y <- stringr::str_squish(y)
+  y <- stringr::str_trim(y)
+  y <- stringr::str_to_lower(y)
+  y <- stringr::str_sub(y, i, j)
+  
+  return(y)
+}
+
+clean_num_input <- function(x, i, j) {
+  y <- iconv(x, to = "ASCII//TRANSLIT", sub = " ")
+  y <- ifelse(y == "all", y, stringr::str_replace_all(y, "[^[:digit:]]", " "))
+  y <- stringr::str_squish(y)
+  y <- stringr::str_trim(y)
+  y <- stringr::str_to_lower(y)
+  y <- stringr::str_sub(y, i, j)
+  
+  return(y)
+}
 
 # Available years in the DB -----------------------------------------------
 
@@ -79,6 +104,11 @@ continents_data <- tibble(
     "Alias for all valid ISO codes in the World"
   )
 )
+
+# Title and description ---------------------------------------------------
+
+#* @apiTitle Open Trade Statistics API
+#* @apiDescription Sandbox to experiment with the available functions
 
 # Hello World -------------------------------------------------------------
 
@@ -135,8 +165,8 @@ function() {
 
 function(y = NULL, c = "all", l = 4) {
   y <- as.integer(y)
-  c <- tolower(substr(as.character(c), 1, 6))
-  l <- tolower(substr(as.character(l), 1, 3))
+  c <- clean_num_input(c, 1, 6)
+  l <- clean_num_input(l, 1, 3)
   
   if (nchar(c) == 2) { l <- "all" }
   
@@ -253,7 +283,7 @@ function(y = 2017) {
 
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 4))
+  r <- clean_char_input(r, 1, 4)
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -322,7 +352,7 @@ function(y = NULL, r = NULL) {
 
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 4))
+  r <- clean_char_input(r, 1, 4)
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -462,9 +492,9 @@ function(y = 2017) {
 
 function(y = NULL, r = NULL, c = "all", l = 4) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 4))
-  c <- tolower(substr(as.character(c), 1, 6))
-  l <- tolower(substr(as.character(l), 1, 3))
+  r <- clean_char_input(r, 1, 4)
+  c <- clean_num_input(c, 1, 6)
+  l <- clean_num_input(l, 1, 3)
   
   if (nchar(c) == 2) { l <- "all" }
   
@@ -561,239 +591,18 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
   return(data)
 }
 
-# YRC exports (for Shiny) -------------------------------------------------
-
-#* Echo back the result of a query on yrc table
-#* @param y Year
-#* @param r Reporter ISO
-#* @param c Product code
-#* @param l Product code length
-#* @get /yrc_exports
-
-function(y = NULL, r = NULL, c = "all", l = 4) {
-  y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 4))
-  c <- tolower(substr(as.character(c), 1, 6))
-  l <- tolower(substr(as.character(l), 1, 3))
-  
-  if (nchar(c) == 2) { l <- "all" }
-  
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
-    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue_sql(
-    "
-    SELECT year, reporter_iso, product_code, export_value_usd
-    FROM public.hs07_yrc
-    WHERE year = {y}
-    ", 
-    .con = con
-  )
-  
-  if (r != "all" & nchar(r) == 3) {  
-    query <- glue_sql(
-      query, 
-      " AND reporter_iso = {r}", 
-      .con = con
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {  
-    r_expanded_alias <- switch(
-      r, 
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    query <- glue_sql(
-      query, 
-      " AND reporter_iso IN ({vals*})", 
-      vals = r_expanded_alias$country_iso,
-      .con = con
-    )
-  }
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- glue_sql(
-      query, 
-      " AND product_code = {c}",
-      .con = con
-    )
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- glue_sql(
-      query, 
-      " AND LEFT(product_code, 2) = {c}",
-      .con = con
-    )
-  }
-  
-  if (l != "all") {
-    query <- glue_sql(
-      query,
-      " AND product_code_length = {l}",
-      .con = con
-    )
-  }
-  
-  data <- dbGetQuery(con, query)
-  
-  if (nrow(data) == 0) {
-    data <- tibble(
-      year = y,
-      reporter_iso = r,
-      product_code = c,
-      observation = "No data available for these filtering parameters"
-    )
-  }
-  
-  return(data)
-}
-
-# YRC imports (for Shiny) -------------------------------------------------
-
-#* Echo back the result of a query on yrc table
-#* @param y Year
-#* @param r Reporter ISO
-#* @param c Product code
-#* @param l Product code length
-#* @get /yrc_imports
-
-function(y = NULL, r = NULL, c = "all", l = 4) {
-  y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 4))
-  c <- tolower(substr(as.character(c), 1, 6))
-  l <- tolower(substr(as.character(l), 1, 3))
-  
-  if (nchar(c) == 2) { l <- "all" }
-  
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso, continents_data$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
-    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue_sql(
-    "
-    SELECT year, reporter_iso, product_code, import_value_usd
-    FROM public.hs07_yrc
-    WHERE year = {y}
-    ", 
-    .con = con
-  )
-  
-  if (r != "all" & nchar(r) == 3) {  
-    query <- glue_sql(
-      query, 
-      " AND reporter_iso = {r}", 
-      .con = con
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {  
-    r_expanded_alias <- switch(
-      r, 
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    query <- glue_sql(
-      query, 
-      " AND reporter_iso IN ({vals*})", 
-      vals = r_expanded_alias$country_iso,
-      .con = con
-    )
-  }
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- glue_sql(
-      query, 
-      " AND product_code = {c}",
-      .con = con
-    )
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- glue_sql(
-      query, 
-      " AND LEFT(product_code, 2) = {c}",
-      .con = con
-    )
-  }
-  
-  if (l != "all") {
-    query <- glue_sql(
-      query,
-      " AND product_code_length = {l}",
-      .con = con
-    )
-  }
-  
-  data <- dbGetQuery(con, query)
-  
-  if (nrow(data) == 0) {
-    data <- tibble(
-      year = y,
-      reporter_iso = r,
-      product_code = c,
-      observation = "No data available for these filtering parameters"
-    )
-  }
-  
-  return(data)
-}
-
 # YRP ---------------------------------------------------------------------
 
 #* Echo back the result of a query on yrp table
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
-#* @param l Product code length
 #* @get /yrp
 
-function(y = NULL, r = NULL, p = NULL, l = 4) {
+function(y = NULL, r = NULL, p = NULL) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 4))
-  p <- tolower(substr(as.character(p), 1, 4))
+  r <- clean_char_input(r, 1, 4)
+  p <- clean_char_input(p, 1, 4)
   
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -816,7 +625,7 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
                     WHERE year = {y}
                     ", .con = con)
   
-  if (r != "all" & nchar(r) == 3) {  
+  if (r != "all" & nchar(r) == 3) {
     query <- glue_sql(
       query, 
       " AND reporter_iso = {r}", 
@@ -894,10 +703,10 @@ function(y = NULL, r = NULL, p = NULL, l = 4) {
 
 function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
   y <- as.integer(y)
-  r <- tolower(substr(as.character(r), 1, 4))
-  p <- tolower(substr(as.character(p), 1, 4))
-  c <- tolower(substr(as.character(c), 1, 6))
-  l <- tolower(substr(as.character(l), 1, 3))
+  r <- clean_char_input(r, 1, 4)
+  p <- clean_char_input(p, 1, 4)
+  c <- clean_num_input(c, 1, 6)
+  l <- clean_num_input(l, 1, 3)
   
   if (nchar(c) == 2) { l <- "all" }
   
