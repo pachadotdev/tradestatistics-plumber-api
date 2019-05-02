@@ -34,7 +34,7 @@ countries_query <- glue_sql(
   "
   SELECT *
   FROM public.attributes_countries
-  ", 
+  ",
   .con = con
 )
 
@@ -52,7 +52,7 @@ continents_data <- tibble(
   )
 )
 
-ots_attributes_countries <- countries_data %>% 
+ots_attributes_countries <- countries_data %>%
   bind_rows(continents_data)
 
 # Products ----------------------------------------------------------------
@@ -67,18 +67,18 @@ products_query <- glue_sql(
 
 products_data <- dbGetQuery(con, products_query)
 
-groups_data <- products_data %>% 
-  select(group_code, group_name) %>% 
-  distinct() %>% 
-  mutate(group_name = paste("Alias for all codes in the group", group_name)) %>% 
-  add_row(group_code = "all", group_name = "Alias for all codes") %>% 
+groups_data <- products_data %>%
+  select(group_code, group_name) %>%
+  distinct() %>%
+  mutate(group_name = paste("Alias for all codes in the group", group_name)) %>%
+  add_row(group_code = "all", group_name = "Alias for all codes") %>%
   rename(
     product_code = group_code,
     product_fullname_english = group_name
-  ) %>% 
+  ) %>%
   arrange(product_code)
 
-ots_attributes_products <-  products_data %>% 
+ots_attributes_products <- products_data %>%
   bind_rows(groups_data)
 
 # Communities -------------------------------------------------------------
