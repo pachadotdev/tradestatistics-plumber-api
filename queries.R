@@ -352,7 +352,9 @@ function(y = NULL, r = NULL) {
 
   query <- glue_sql(
     "
-    SELECT year, reporter_iso, export_value_usd, import_value_usd
+    SELECT year, reporter_iso, export_value_usd, import_value_usd,
+      top_export_product_code, top_export_trade_value_usd,
+      top_import_product_code, top_import_trade_value_usd
     FROM public.hs07_yr 
     WHERE year = {y}
     ",
@@ -676,6 +678,106 @@ function(y = NULL, r = NULL, p = NULL) {
   return(data)
 }
 
+# YRP short ---------------------------------------------------------------
+
+#* Echo back the result of a query on yrp table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param p Partner ISO
+#* @get /yrp_short
+
+function(y = NULL, r = NULL, p = NULL) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  p <- clean_char_input(p, 1, 4)
+  
+  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(p) <= 4 | !p %in% c(ots_attributes_countries$country_iso)) {
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  query <- glue_sql("
+                    SELECT year, reporter_iso, partner_iso, export_value_usd, import_value_usd
+                    FROM public.hs07_yrp
+                    WHERE year = {y}
+                    ", .con = con)
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue_sql(
+      query,
+      " AND reporter_iso = {r}",
+      .con = con
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r_expanded_alias <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query,
+      " AND reporter_iso IN ({vals*})",
+      vals = r_expanded_alias$country_iso,
+      .con = con
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 3) {
+    query <- glue_sql(
+      query,
+      " AND partner_iso = {p}",
+      .con = con
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 4) {
+    p2 <- switch(
+      p,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    query <- glue_sql(
+      query,
+      " AND partner_iso IN ({vals*})",
+      vals = p2$country_iso,
+      .con = con
+    )
+  }
+  
+  data <- dbGetQuery(con, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      partner_iso = p,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
 # YRPC --------------------------------------------------------------------
 
 #* Echo back the result of a query on yrpc table
@@ -828,7 +930,51 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
 #* @get /tables
 
 function() {
-  ots_attributes_tables
+  tibble::tibble(
+    table = c(
+      "countries",
+      "products",
+      "reporters",
+      "communities",
+      "product_shortnames",
+      "country_rankings",
+      "product_rankings",
+      "yrpc",
+      "yrp",
+      "yrp_short",
+      "yrc",
+      "yrc_exports",
+      "yrc_imports",
+      "yr",
+      "yr_short",
+      "yc"
+    ),
+    description = c(
+      "Countries metadata",
+      "Product metadata",
+      "Reporting countries",
+      "Product communities",
+      "Product short names",
+      "Ranking of countries",
+      "Ranking of products",
+      "Bilateral trade at product level (Year, Reporter, Partner and Product Code)",
+      "Reporter trade at aggregated level (Year, Reporter and Partner)",
+      "Reporter trade at aggregated level (Year, Reporter and Partner), imports and exports only",
+      "Reporter trade at aggregated level (Year, Reporter and Product Code)",
+      "Reporter trade at aggregated level (Year, Reporter and Product Code), exports only",
+      "Reporter trade at aggregated level (Year, Reporter and Product Code), imports only",
+      "Reporter trade at aggregated level (Year and Reporter)",
+      "Reporter trade at aggregated level (Year and Reporter), imports and exports only",
+      "Product trade at aggregated level (Year and Product Code)"
+    ),
+    source = c(
+      rep("UN Comtrade",3),
+      "Center for International Development at Harvard University",
+      "The Observatory of Economic Complexity (with modifications)",
+      "UN Comtrade",
+      rep("Open Trade Statistics",10)
+    )
+  )
 }
 
 # Year range --------------------------------------------------------------
