@@ -63,31 +63,31 @@ max_year <- dbGetQuery(con, glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>
 # create vectors by continent to filter by using meta variables like americas, africa, etc
 
 ## Africa
-countries_africa <- ots_attributes_countries %>%
+countries_africa <- ots_countries %>%
   filter(continent == "Africa") %>%
   select(country_iso) %>%
   as.vector()
 
 ## Americas
-countries_americas <- ots_attributes_countries %>%
+countries_americas <- ots_countries %>%
   filter(continent == "Americas") %>%
   select(country_iso) %>%
   as.vector()
 
 ## Asia
-countries_asia <- ots_attributes_countries %>%
+countries_asia <- ots_countries %>%
   filter(continent == "Asia") %>%
   select(country_iso) %>%
   as.vector()
 
 ## Europe
-countries_europe <- ots_attributes_countries %>%
+countries_europe <- ots_countries %>%
   filter(continent == "Europe") %>%
   select(country_iso) %>%
   as.vector()
 
 ## Oceania
-countries_oceania <- ots_attributes_countries %>%
+countries_oceania <- ots_countries %>%
   filter(continent == "Oceania") %>%
   select(country_iso) %>%
   as.vector()
@@ -112,7 +112,7 @@ function() {
 #* @get /countries
 
 function() {
-  ots_attributes_countries
+  ots_countries
 }
 
 # Products ----------------------------------------------------------------
@@ -121,7 +121,7 @@ function() {
 #* @get /products
 
 function() {
-  ots_attributes_products
+  ots_products
 }
 
 # Communities -------------------------------------------------------------
@@ -130,7 +130,7 @@ function() {
 #* @get /communities
 
 function() {
-  ots_attributes_communities
+  ots_communities
 }
 
 # Product shortnames ------------------------------------------------------
@@ -139,7 +139,7 @@ function() {
 #* @get /product_shortnames
 
 function() {
-  ots_attributes_product_shortnames
+  ots_product_shortnames
 }
 
 # YC ----------------------------------------------------------------------
@@ -164,7 +164,7 @@ function(y = NULL, c = "all", l = 4) {
     stop()
   }
 
-  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
+  if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -276,7 +276,7 @@ function(y = NULL, r = NULL) {
     stop()
   }
 
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -345,7 +345,7 @@ function(y = NULL, r = NULL) {
     stop()
   }
 
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -490,12 +490,12 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     stop()
   }
 
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
 
-  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
+  if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -596,12 +596,12 @@ function(y = NULL, r = NULL, p = NULL) {
     stop()
   }
 
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
 
-  if (!nchar(p) <= 4 | !p %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(p) <= 4 | !p %in% c(ots_countries$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -696,12 +696,12 @@ function(y = NULL, r = NULL, p = NULL) {
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(p) <= 4 | !p %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(p) <= 4 | !p %in% c(ots_countries$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -804,17 +804,17 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     stop()
   }
 
-  if (!nchar(r) <= 4 | !r %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
 
-  if (!nchar(p) <= 4 | !p %in% c(ots_attributes_countries$country_iso)) {
+  if (!nchar(p) <= 4 | !p %in% c(ots_countries$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
 
-  if (!nchar(c) <= 6 | !c %in% ots_attributes_products$product_code) {
+  if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
