@@ -5,6 +5,7 @@
 library(dplyr)
 library(glue)
 library(RPostgreSQL)
+library(pool)
 library(tradestatistics)
 
 # Read credentials from file in .gitignore --------------------------------
@@ -13,20 +14,12 @@ readRenviron("/apis/tradestatistics")
 
 # DB connection parameters ------------------------------------------------
 
-drv <- dbDriver("PostgreSQL") # choose the driver
-
-dbusr <- Sys.getenv("dbusr")
-dbpwd <- Sys.getenv("dbpwd")
-dbhost <- Sys.getenv("dbhost")
-dbname <- Sys.getenv("dbname")
-
-con <- dbConnect(
-  drv,
-  host = dbhost,
-  port = 5432,
-  user = dbusr,
-  password = dbpwd,
-  dbname = dbname
+pool <- dbPool(
+  drv = dbDriver("PostgreSQL"),
+  dbname = Sys.getenv("dbname"),
+  host = Sys.getenv("dbhost"),
+  user = Sys.getenv("dbusr"),
+  password = Sys.getenv("dbpwd")
 )
 
 # Clean inputs ------------------------------------------------------------
@@ -55,8 +48,8 @@ clean_num_input <- function(x, i, j) {
 
 # Available years in the DB -----------------------------------------------
 
-min_year <- dbGetQuery(con, glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% as.numeric()
-max_year <- dbGetQuery(con, glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% as.numeric()
+min_year <- dbGetQuery(pool, glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% as.numeric()
+max_year <- dbGetQuery(pool, glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% as.numeric()
 
 # List of countries (to filter API parameters) ----------------------------
 
@@ -180,14 +173,14 @@ function(y = NULL, c = "all", l = 4) {
     FROM public.hs07_yc
     WHERE year = {y}
     ",
-    .con = con
+    .con = pool
   )
 
   if (c != "all" & nchar(c) != 2) {
     query <- glue_sql(
       query,
       " AND product_code = {c}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -195,7 +188,7 @@ function(y = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND LEFT(product_code, 2) = {c}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -203,11 +196,11 @@ function(y = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND product_code_length = {l}",
-      .con = con
+      .con = pool
     )
   }
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
     data <- tibble(
@@ -243,10 +236,10 @@ function(y = 2017) {
     WHERE year = {y}
     AND product_code_length = 4
     ",
-    .con = con
+    .con = pool
   )
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   data <- data %>%
     as_tibble() %>%
@@ -287,14 +280,14 @@ function(y = NULL, r = NULL) {
     FROM public.hs07_yr 
     WHERE year = {y}
     ",
-    .con = con
+    .con = pool
   )
 
   if (r != "all" & nchar(r) == 3) {
     query <- glue_sql(
       query,
       " AND reporter_iso = {r}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -312,11 +305,11 @@ function(y = NULL, r = NULL) {
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
-      .con = con
+      .con = pool
     )
   }
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
     data <- tibble(
@@ -358,14 +351,14 @@ function(y = NULL, r = NULL) {
     FROM public.hs07_yr 
     WHERE year = {y}
     ",
-    .con = con
+    .con = pool
   )
 
   if (r != "all" & nchar(r) == 3) {
     query <- glue_sql(
       query,
       " AND reporter_iso = {r}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -383,11 +376,11 @@ function(y = NULL, r = NULL) {
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
-      .con = con
+      .con = pool
     )
   }
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
     data <- tibble(
@@ -419,10 +412,10 @@ function(y = 2017) {
     FROM public.hs07_yr
     WHERE year = {y}
     ",
-    .con = con
+    .con = pool
   )
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   return(data)
 }
@@ -449,10 +442,10 @@ function(y = 2017) {
     FROM public.hs07_yr
     WHERE year = {y}
     ",
-    .con = con
+    .con = pool
   )
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   data <- data %>%
     as_tibble() %>%
@@ -511,14 +504,14 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     FROM public.hs07_yrc
     WHERE year = {y}
     ",
-    .con = con
+    .con = pool
   )
 
   if (r != "all" & nchar(r) == 3) {
     query <- glue_sql(
       query,
       " AND reporter_iso = {r}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -536,7 +529,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
-      .con = con
+      .con = pool
     )
   }
 
@@ -544,7 +537,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND product_code = {c}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -552,7 +545,7 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND LEFT(product_code, 2) = {c}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -560,11 +553,11 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND product_code_length = {l}",
-      .con = con
+      .con = pool
     )
   }
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
     data <- tibble(
@@ -610,13 +603,13 @@ function(y = NULL, r = NULL, p = NULL) {
                     SELECT *
                     FROM public.hs07_yrp
                     WHERE year = {y}
-                    ", .con = con)
+                    ", .con = pool)
 
   if (r != "all" & nchar(r) == 3) {
     query <- glue_sql(
       query,
       " AND reporter_iso = {r}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -634,7 +627,7 @@ function(y = NULL, r = NULL, p = NULL) {
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
-      .con = con
+      .con = pool
     )
   }
 
@@ -642,7 +635,7 @@ function(y = NULL, r = NULL, p = NULL) {
     query <- glue_sql(
       query,
       " AND partner_iso = {p}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -660,11 +653,11 @@ function(y = NULL, r = NULL, p = NULL) {
       query,
       " AND partner_iso IN ({vals*})",
       vals = p2$country_iso,
-      .con = con
+      .con = pool
     )
   }
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
     data <- tibble(
@@ -710,13 +703,13 @@ function(y = NULL, r = NULL, p = NULL) {
                     SELECT year, reporter_iso, partner_iso, export_value_usd, import_value_usd
                     FROM public.hs07_yrp
                     WHERE year = {y}
-                    ", .con = con)
+                    ", .con = pool)
   
   if (r != "all" & nchar(r) == 3) {
     query <- glue_sql(
       query,
       " AND reporter_iso = {r}",
-      .con = con
+      .con = pool
     )
   }
   
@@ -734,7 +727,7 @@ function(y = NULL, r = NULL, p = NULL) {
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
-      .con = con
+      .con = pool
     )
   }
   
@@ -742,7 +735,7 @@ function(y = NULL, r = NULL, p = NULL) {
     query <- glue_sql(
       query,
       " AND partner_iso = {p}",
-      .con = con
+      .con = pool
     )
   }
   
@@ -760,11 +753,11 @@ function(y = NULL, r = NULL, p = NULL) {
       query,
       " AND partner_iso IN ({vals*})",
       vals = p2$country_iso,
-      .con = con
+      .con = pool
     )
   }
   
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -830,14 +823,14 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     FROM public.hs07_yrpc
     WHERE year = {y}
     ",
-    .con = con
+    .con = pool
   )
 
   if (r != "all" & nchar(r) == 3) {
     query <- glue_sql(
       query,
       " AND reporter_iso = {r}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -855,7 +848,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
-      .con = con
+      .con = pool
     )
   }
 
@@ -863,7 +856,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND partner_iso = {p}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -881,7 +874,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
       query,
       " AND partner_iso IN ({vals*})",
       vals = p2$country_iso,
-      .con = con
+      .con = pool
     )
   }
 
@@ -889,7 +882,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND product_code = {c}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -897,7 +890,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND LEFT(product_code, 2) = {c}",
-      .con = con
+      .con = pool
     )
   }
 
@@ -905,11 +898,11 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND product_code_length = {l}",
-      .con = con
+      .con = pool
     )
   }
 
-  data <- dbGetQuery(con, query)
+  data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
     data <- tibble(
