@@ -140,17 +140,11 @@ function() {
 #* Echo back the result of a query on yc table
 #* @param y Year
 #* @param c Product code
-#* @param l Product code length
 #* @get /yc
 
-function(y = NULL, c = "all", l = 4) {
+function(y = NULL, c = "all") {
   y <- as.integer(y)
   c <- clean_num_input(c, 1, 6)
-  l <- clean_num_input(l, 1, 3)
-
-  if (nchar(c) == 2) {
-    l <- "all"
-  }
 
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -159,11 +153,6 @@ function(y = NULL, c = "all", l = 4) {
 
   if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-
-  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
 
@@ -191,15 +180,7 @@ function(y = NULL, c = "all", l = 4) {
       .con = pool
     )
   }
-
-  if (l != "all") {
-    query <- glue_sql(
-      query,
-      " AND product_code_length = {l}",
-      .con = pool
-    )
-  }
-
+  
   data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
@@ -231,10 +212,9 @@ function(y = 2017) {
 
   query <- glue_sql(
     "
-    SELECT year, product_code, export_value_usd, import_value_usd, pci_4_digits_product_code
+    SELECT year, product_code, pci_fitness_method, pci_rank_fitness_method
     FROM public.hs07_yc
     WHERE year = {y}
-    AND product_code_length = 4
     ",
     .con = pool
   )
@@ -438,7 +418,7 @@ function(y = 2017) {
 
   query <- glue_sql(
     "
-    SELECT year, reporter_iso, export_value_usd, import_value_usd, eci_4_digits_product_code
+    SELECT year, reporter_iso, eci_fitness_method, eci_rank_fitness_method
     FROM public.hs07_yr
     WHERE year = {y}
     ",
@@ -465,18 +445,12 @@ function(y = 2017) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param c Product code
-#* @param l Product code length
 #* @get /yrc
 
-function(y = NULL, r = NULL, c = "all", l = 4) {
+function(y = NULL, r = NULL, c = "all") {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   c <- clean_num_input(c, 1, 6)
-  l <- clean_num_input(l, 1, 3)
-
-  if (nchar(c) == 2) {
-    l <- "all"
-  }
 
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -545,14 +519,6 @@ function(y = NULL, r = NULL, c = "all", l = 4) {
     query <- glue_sql(
       query,
       " AND LEFT(product_code, 2) = {c}",
-      .con = pool
-    )
-  }
-
-  if (l != "all") {
-    query <- glue_sql(
-      query,
-      " AND product_code_length = {l}",
       .con = pool
     )
   }
@@ -781,16 +747,11 @@ function(y = NULL, r = NULL, p = NULL) {
 #* @param l Product code length
 #* @get /yrpc
 
-function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
+function(y = NULL, r = NULL, p = NULL, c = "all") {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   p <- clean_char_input(p, 1, 4)
   c <- clean_num_input(c, 1, 6)
-  l <- clean_num_input(l, 1, 3)
-
-  if (nchar(c) == 2) {
-    l <- "all"
-  }
 
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -809,11 +770,6 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
 
   if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-
-  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
 
@@ -894,14 +850,6 @@ function(y = NULL, r = NULL, p = NULL, c = "all", l = 4) {
     )
   }
 
-  if (l != "all") {
-    query <- glue_sql(
-      query,
-      " AND product_code_length = {l}",
-      .con = pool
-    )
-  }
-
   data <- dbGetQuery(pool, query)
 
   if (nrow(data) == 0) {
@@ -964,8 +912,7 @@ function() {
       rep("UN Comtrade",3),
       "Center for International Development at Harvard University",
       "The Observatory of Economic Complexity (with modifications)",
-      "UN Comtrade",
-      rep("Open Trade Statistics",10)
+      rep("Open Trade Statistics",11)
     )
   )
 }
