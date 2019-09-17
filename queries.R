@@ -144,14 +144,14 @@ function() {
 
 function(y = NULL, c = "all") {
   y <- as.integer(y)
-  c <- clean_num_input(c, 1, 6)
+  c <- clean_num_input(c, 1, 4)
 
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
 
-  if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
+  if (!nchar(c) <= 4 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -222,13 +222,8 @@ function(y = 2017) {
   data <- dbGetQuery(pool, query)
 
   data <- data %>%
-    as_tibble() %>%
-    arrange(-export_value_usd) %>%
-    mutate(export_value_usd_rank = row_number()) %>%
-    arrange(-import_value_usd) %>%
-    mutate(import_value_usd_rank = row_number()) %>%
-    arrange(-pci_4_digits_product_code) %>%
-    mutate(pci_4_digits_product_code_rank = row_number())
+    filter(pci_rank_fitness_method > 0) %>% 
+    arrange(pci_rank_fitness_method)
 
   return(data)
 }
@@ -428,13 +423,8 @@ function(y = 2017) {
   data <- dbGetQuery(pool, query)
 
   data <- data %>%
-    as_tibble() %>%
-    arrange(-export_value_usd) %>%
-    mutate(export_value_usd_rank = row_number()) %>%
-    arrange(-import_value_usd) %>%
-    mutate(import_value_usd_rank = row_number()) %>%
-    arrange(-eci_4_digits_product_code) %>%
-    mutate(eci_4_digits_product_code_rank = row_number())
+    filter(eci_rank_fitness_method > 0) %>% 
+    arrange(eci_rank_fitness_method)
 
   return(data)
 }
@@ -450,7 +440,7 @@ function(y = 2017) {
 function(y = NULL, r = NULL, c = "all") {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
-  c <- clean_num_input(c, 1, 6)
+  c <- clean_num_input(c, 1, 4)
 
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -462,13 +452,8 @@ function(y = NULL, r = NULL, c = "all") {
     stop()
   }
 
-  if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
+  if (!nchar(c) <= 4 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-
-  if (!nchar(l) <= 3 | !l %in% c(4, 6, "all")) {
-    return("The specified length is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
 
@@ -744,14 +729,13 @@ function(y = NULL, r = NULL, p = NULL) {
 #* @param r Reporter ISO
 #* @param p Partner ISO
 #* @param c Product code
-#* @param l Product code length
 #* @get /yrpc
 
 function(y = NULL, r = NULL, p = NULL, c = "all") {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   p <- clean_char_input(p, 1, 4)
-  c <- clean_num_input(c, 1, 6)
+  c <- clean_num_input(c, 1, 4)
 
   if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
@@ -768,7 +752,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
     stop()
   }
 
-  if (!nchar(c) <= 6 | !c %in% ots_products$product_code) {
+  if (!nchar(c) <= 4 | !c %in% ots_products$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
