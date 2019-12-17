@@ -185,8 +185,8 @@ function(y = NULL, c = "all") {
     )
   }
   
-  d <- function(pool, query) {
-    dbGetQuery(pool, query)
+  d <- function(cache_pool = pool, cache_query = query) {
+    dbGetQuery(cache_pool, cache_query)
   }
   
   d2 <- memoise::memoise(d, cache = memoise::cache_filesystem("cache"))
