@@ -3,10 +3,14 @@
 # Packages ----------------------------------------------------------------
 
 library(dplyr)
-library(glue)
 library(RPostgreSQL)
-library(pool)
 library(tradestatistics)
+
+# used but not loaded completely
+# library(pool)
+# library(glue)
+# library(stringr)
+# library(memoise)
 
 # Read credentials from file in .gitignore --------------------------------
 
@@ -14,7 +18,7 @@ readRenviron("/apis/tradestatistics")
 
 # DB connection parameters ------------------------------------------------
 
-pool <- dbPool(
+pool <- pool::dbPool(
   drv = dbDriver("PostgreSQL"),
   dbname = Sys.getenv("dbname"),
   host = Sys.getenv("dbhost"),
@@ -48,8 +52,8 @@ clean_num_input <- function(x, i, j) {
 
 # Available years in the DB -----------------------------------------------
 
-min_year <- dbGetQuery(pool, glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% as.numeric()
-max_year <- dbGetQuery(pool, glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% as.numeric()
+min_year <- dbGetQuery(pool, glue::glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% as.numeric()
+max_year <- dbGetQuery(pool, glue::glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% as.numeric()
 
 # List of countries (to filter API parameters) ----------------------------
 
@@ -156,7 +160,7 @@ function(y = NULL, c = "all") {
     stop()
   }
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT *
     FROM public.hs07_yc
@@ -166,7 +170,7 @@ function(y = NULL, c = "all") {
   )
 
   if (c != "all" & nchar(c) != 2) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND product_code = {c}",
       .con = pool
@@ -174,24 +178,30 @@ function(y = NULL, c = "all") {
   }
 
   if (c != "all" & nchar(c) == 2) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND LEFT(product_code, 2) = {c}",
       .con = pool
     )
   }
   
-  data <- dbGetQuery(pool, query)
-
-  if (nrow(data) == 0) {
-    data <- tibble(
-      year = y,
-      product_code = c,
-      observation = "No data available for these filtering parameters"
-    )
+  d <- function(pool, query) {
+    dbGetQuery(pool, query)
+  }
+  
+  d2 <- memoise::memoise(d, cache = memoise::cache_filesystem("cache"))
+  
+  if (nrow(d2()) == 0) {
+    d2 <- function() {
+      tibble(
+        year = y,
+        product_code = c,
+        observation = "No data available for these filtering parameters"
+      )
+    }
   }
 
-  return(data)
+  return(d2())
 }
 
 # Product rankings --------------------------------------------------------
@@ -210,7 +220,7 @@ function(y = 2017) {
 
   stopifnot(is.integer(y))
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT year, product_code, pci_fitness_method, pci_rank_fitness_method
     FROM public.hs07_yc
@@ -249,7 +259,7 @@ function(y = NULL, r = NULL) {
     stop()
   }
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT * 
     FROM public.hs07_yr 
@@ -259,7 +269,7 @@ function(y = NULL, r = NULL) {
   )
 
   if (r != "all" & nchar(r) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso = {r}",
       .con = pool
@@ -276,7 +286,7 @@ function(y = NULL, r = NULL) {
       "c-oc" = countries_oceania
     )
 
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
@@ -318,7 +328,7 @@ function(y = NULL, r = NULL) {
     stop()
   }
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT year, reporter_iso, export_value_usd, import_value_usd,
       top_export_product_code, top_export_trade_value_usd,
@@ -330,7 +340,7 @@ function(y = NULL, r = NULL) {
   )
 
   if (r != "all" & nchar(r) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso = {r}",
       .con = pool
@@ -347,7 +357,7 @@ function(y = NULL, r = NULL) {
       "c-oc" = countries_oceania
     )
 
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
@@ -381,7 +391,7 @@ function(y = 2017) {
     stop()
   }
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT reporter_iso
     FROM public.hs07_yr
@@ -411,7 +421,7 @@ function(y = 2017) {
 
   stopifnot(is.integer(y))
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT year, reporter_iso, eci_fitness_method, eci_rank_fitness_method
     FROM public.hs07_yr
@@ -457,7 +467,7 @@ function(y = NULL, r = NULL, c = "all") {
     stop()
   }
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT *
     FROM public.hs07_yrc
@@ -467,7 +477,7 @@ function(y = NULL, r = NULL, c = "all") {
   )
 
   if (r != "all" & nchar(r) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso = {r}",
       .con = pool
@@ -484,7 +494,7 @@ function(y = NULL, r = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
 
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
@@ -493,7 +503,7 @@ function(y = NULL, r = NULL, c = "all") {
   }
 
   if (c != "all" & nchar(c) != 2) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND product_code = {c}",
       .con = pool
@@ -501,7 +511,7 @@ function(y = NULL, r = NULL, c = "all") {
   }
 
   if (c != "all" & nchar(c) == 2) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND LEFT(product_code, 2) = {c}",
       .con = pool
@@ -550,14 +560,14 @@ function(y = NULL, r = NULL, p = NULL) {
     stop()
   }
 
-  query <- glue_sql("
+  query <- glue::glue_sql("
                     SELECT *
                     FROM public.hs07_yrp
                     WHERE year = {y}
                     ", .con = pool)
 
   if (r != "all" & nchar(r) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso = {r}",
       .con = pool
@@ -574,7 +584,7 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
 
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
@@ -583,7 +593,7 @@ function(y = NULL, r = NULL, p = NULL) {
   }
 
   if (p != "all" & nchar(p) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND partner_iso = {p}",
       .con = pool
@@ -600,7 +610,7 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
 
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND partner_iso IN ({vals*})",
       vals = p2$country_iso,
@@ -650,14 +660,14 @@ function(y = NULL, r = NULL, p = NULL) {
     stop()
   }
   
-  query <- glue_sql("
+  query <- glue::glue_sql("
                     SELECT year, reporter_iso, partner_iso, export_value_usd, import_value_usd
                     FROM public.hs07_yrp
                     WHERE year = {y}
                     ", .con = pool)
   
   if (r != "all" & nchar(r) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso = {r}",
       .con = pool
@@ -674,7 +684,7 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
     
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
@@ -683,7 +693,7 @@ function(y = NULL, r = NULL, p = NULL) {
   }
   
   if (p != "all" & nchar(p) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND partner_iso = {p}",
       .con = pool
@@ -700,7 +710,7 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
     
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND partner_iso IN ({vals*})",
       vals = p2$country_iso,
@@ -757,7 +767,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
     stop()
   }
 
-  query <- glue_sql(
+  query <- glue::glue_sql(
     "
     SELECT *
     FROM public.hs07_yrpc
@@ -767,7 +777,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   )
 
   if (r != "all" & nchar(r) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso = {r}",
       .con = pool
@@ -784,7 +794,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
 
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
       vals = r_expanded_alias$country_iso,
@@ -793,7 +803,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   }
 
   if (p != "all" & nchar(p) == 3) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND partner_iso = {p}",
       .con = pool
@@ -810,7 +820,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
 
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND partner_iso IN ({vals*})",
       vals = p2$country_iso,
@@ -819,7 +829,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   }
 
   if (c != "all" & nchar(c) != 2) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND product_code = {c}",
       .con = pool
@@ -827,7 +837,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   }
 
   if (c != "all" & nchar(c) == 2) {
-    query <- glue_sql(
+    query <- glue::glue_sql(
       query,
       " AND LEFT(product_code, 2) = {c}",
       .con = pool
