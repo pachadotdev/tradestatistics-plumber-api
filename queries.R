@@ -4,13 +4,6 @@
 
 library(dplyr)
 library(RPostgreSQL)
-library(tradestatistics)
-
-# used but not loaded completely
-# library(pool)
-# library(glue)
-# library(stringr)
-# library(memoise)
 
 # Read credentials from file in .gitignore --------------------------------
 
@@ -26,6 +19,14 @@ pool <- pool::dbPool(
   password = Sys.getenv("dbpwd")
 )
 
+# pool <- pool::dbPool(
+#   drv = dbDriver("PostgreSQL"),
+#   dbname = "",
+#   host = "",
+#   user = "",
+#   password = ""
+# )
+
 # Clean inputs ------------------------------------------------------------
 
 clean_char_input <- function(x, i, j) {
@@ -35,7 +36,7 @@ clean_char_input <- function(x, i, j) {
   y <- stringr::str_trim(y)
   y <- stringr::str_to_lower(y)
   y <- stringr::str_sub(y, i, j)
-
+  
   return(y)
 }
 
@@ -46,48 +47,29 @@ clean_num_input <- function(x, i, j) {
   y <- stringr::str_trim(y)
   y <- stringr::str_to_lower(y)
   y <- stringr::str_sub(y, i, j)
-
+  
   return(y)
 }
 
+# Caching -----------------------------------------------------------------
+
+dbGetQuery_cached <- memoise::memoise(dbGetQuery, cache = memoise::cache_filesystem("cache"))
+
 # Available years in the DB -----------------------------------------------
 
-min_year <- dbGetQuery(pool, glue::glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% as.numeric()
-max_year <- dbGetQuery(pool, glue::glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% as.numeric()
+min_year <- function() {
+  return(
+    dbGetQuery_cached(pool, glue::glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% 
+      as.numeric()
+  )
+}
 
-# List of countries (to filter API parameters) ----------------------------
-
-# create vectors by continent to filter by using meta variables like americas, africa, etc
-
-## Africa
-countries_africa <- ots_countries %>%
-  filter(continent == "Africa") %>%
-  select(country_iso) %>%
-  as.vector()
-
-## Americas
-countries_americas <- ots_countries %>%
-  filter(continent == "Americas") %>%
-  select(country_iso) %>%
-  as.vector()
-
-## Asia
-countries_asia <- ots_countries %>%
-  filter(continent == "Asia") %>%
-  select(country_iso) %>%
-  as.vector()
-
-## Europe
-countries_europe <- ots_countries %>%
-  filter(continent == "Europe") %>%
-  select(country_iso) %>%
-  as.vector()
-
-## Oceania
-countries_oceania <- ots_countries %>%
-  filter(continent == "Oceania") %>%
-  select(country_iso) %>%
-  as.vector()
+max_year <- function() {
+  return(
+    dbGetQuery_cached(pool, glue::glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% 
+      as.numeric()
+  )
+}
 
 # Title and description ---------------------------------------------------
 
@@ -105,39 +87,89 @@ function() {
 
 # Countries ---------------------------------------------------------------
 
+countries <- function() {
+  return(
+    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_countries"))
+  )
+}
+
 #* Echo back the result of a query on attributes_countries table
 #* @get /countries
 
-function() {
-  ots_countries
-}
+function() { countries() }
+
+# Continents (to filter API parameters) -----------------------------------
+
+# create vectors by continent to filter by using meta variables like americas, africa, etc
+
+## Africa
+countries_africa <- countries() %>%
+  filter(continent == "Africa") %>%
+  select(country_iso) %>%
+  as.vector()
+
+## Americas
+countries_americas <- countries() %>%
+  filter(continent == "Americas") %>%
+  select(country_iso) %>%
+  as.vector()
+
+## Asia
+countries_asia <- countries() %>%
+  filter(continent == "Asia") %>%
+  select(country_iso) %>%
+  as.vector()
+
+## Europe
+countries_europe <- countries() %>%
+  filter(continent == "Europe") %>%
+  select(country_iso) %>%
+  as.vector()
+
+## Oceania
+countries_oceania <- countries() %>%
+  filter(continent == "Oceania") %>%
+  select(country_iso) %>%
+  as.vector()
 
 # Products ----------------------------------------------------------------
+
+products <- function() {
+  return(
+    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_products"))
+  )
+}
 
 #* Echo back the result of a query on attributes_products table
 #* @get /products
 
-function() {
-  ots_products
-}
+function() { products() }
 
 # Communities -------------------------------------------------------------
+
+communities <- function() {
+  return(
+    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_communities"))
+  )
+}
 
 #* Echo back the result of a query on attributes_communities table
 #* @get /communities
 
-function() {
-  ots_communities
-}
+function() { communities() }
 
 # Product shortnames ------------------------------------------------------
+
+products_shortnames <- function() {
+  return(
+    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_products_shortnames"))
+  )
+}
 
 #* Echo back the result of a query on attributes_products_shortnames table
 #* @get /product_shortnames
 
-function() {
-  ots_product_shortnames
-}
+function() { products_shortnames() }
 
 # YC ----------------------------------------------------------------------
 
@@ -149,17 +181,17 @@ function() {
 function(y = NULL, c = "all") {
   y <- as.integer(y)
   c <- clean_num_input(c, 1, 4)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(c) <= 4 | !c %in% ots_products$product_code) {
+  
+  if (!nchar(c) <= 4 | !c %in% products()$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
-
+  
   query <- glue::glue_sql(
     "
     SELECT *
@@ -168,7 +200,7 @@ function(y = NULL, c = "all") {
     ",
     .con = pool
   )
-
+  
   if (c != "all" & nchar(c) != 2) {
     query <- glue::glue_sql(
       query,
@@ -176,7 +208,7 @@ function(y = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (c != "all" & nchar(c) == 2) {
     query <- glue::glue_sql(
       query,
@@ -185,23 +217,17 @@ function(y = NULL, c = "all") {
     )
   }
   
-  d <- function(cache_pool = pool, cache_query = query) {
-    dbGetQuery(cache_pool, cache_query)
+  data <- dbGetQuery_cached(pool, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      product_code = c,
+      observation = "No data available for these filtering parameters"
+    )
   }
   
-  d2 <- memoise::memoise(d, cache = memoise::cache_filesystem("cache"))
-  
-  if (nrow(d2()) == 0) {
-    d2 <- function() {
-      tibble(
-        year = y,
-        product_code = c,
-        observation = "No data available for these filtering parameters"
-      )
-    }
-  }
-
-  return(d2())
+  return(data)
 }
 
 # Product rankings --------------------------------------------------------
@@ -212,14 +238,14 @@ function(y = NULL, c = "all") {
 
 function(y = 2017) {
   y <- as.integer(y)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value.")
     stop()
   }
-
+  
   stopifnot(is.integer(y))
-
+  
   query <- glue::glue_sql(
     "
     SELECT year, product_code, pci_fitness_method, pci_rank_fitness_method
@@ -228,13 +254,13 @@ function(y = 2017) {
     ",
     .con = pool
   )
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   data <- data %>%
     filter(pci_rank_fitness_method > 0) %>% 
     arrange(pci_rank_fitness_method)
-
+  
   return(data)
 }
 
@@ -248,17 +274,17 @@ function(y = 2017) {
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
-
+  
   query <- glue::glue_sql(
     "
     SELECT * 
@@ -267,7 +293,7 @@ function(y = NULL, r = NULL) {
     ",
     .con = pool
   )
-
+  
   if (r != "all" & nchar(r) == 3) {
     query <- glue::glue_sql(
       query,
@@ -275,7 +301,7 @@ function(y = NULL, r = NULL) {
       .con = pool
     )
   }
-
+  
   if (r != "all" & nchar(r) == 4) {
     r_expanded_alias <- switch(
       r,
@@ -285,7 +311,7 @@ function(y = NULL, r = NULL) {
       "c-eu" = countries_europe,
       "c-oc" = countries_oceania
     )
-
+    
     query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
@@ -293,9 +319,9 @@ function(y = NULL, r = NULL) {
       .con = pool
     )
   }
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   if (nrow(data) == 0) {
     data <- tibble(
       year = y,
@@ -303,7 +329,7 @@ function(y = NULL, r = NULL) {
       observation = "No data available for these filtering parameters"
     )
   }
-
+  
   return(data)
 }
 
@@ -317,17 +343,17 @@ function(y = NULL, r = NULL) {
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
-
+  
   query <- glue::glue_sql(
     "
     SELECT year, reporter_iso, export_value_usd, import_value_usd,
@@ -338,7 +364,7 @@ function(y = NULL, r = NULL) {
     ",
     .con = pool
   )
-
+  
   if (r != "all" & nchar(r) == 3) {
     query <- glue::glue_sql(
       query,
@@ -346,7 +372,7 @@ function(y = NULL, r = NULL) {
       .con = pool
     )
   }
-
+  
   if (r != "all" & nchar(r) == 4) {
     r_expanded_alias <- switch(
       r,
@@ -356,7 +382,7 @@ function(y = NULL, r = NULL) {
       "c-eu" = countries_europe,
       "c-oc" = countries_oceania
     )
-
+    
     query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
@@ -364,9 +390,9 @@ function(y = NULL, r = NULL) {
       .con = pool
     )
   }
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   if (nrow(data) == 0) {
     data <- tibble(
       year = y,
@@ -374,7 +400,7 @@ function(y = NULL, r = NULL) {
       observation = "No data available for these filtering parameters"
     )
   }
-
+  
   return(data)
 }
 
@@ -385,12 +411,12 @@ function(y = NULL, r = NULL) {
 
 function(y = 2017) {
   y <- as.integer(y)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value.")
     stop()
   }
-
+  
   query <- glue::glue_sql(
     "
     SELECT reporter_iso
@@ -399,9 +425,9 @@ function(y = 2017) {
     ",
     .con = pool
   )
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   return(data)
 }
 
@@ -413,14 +439,14 @@ function(y = 2017) {
 
 function(y = 2017) {
   y <- as.integer(y)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value.")
     stop()
   }
-
+  
   stopifnot(is.integer(y))
-
+  
   query <- glue::glue_sql(
     "
     SELECT year, reporter_iso, eci_fitness_method, eci_rank_fitness_method
@@ -429,13 +455,13 @@ function(y = 2017) {
     ",
     .con = pool
   )
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   data <- data %>%
     filter(eci_rank_fitness_method > 0) %>% 
     arrange(eci_rank_fitness_method)
-
+  
   return(data)
 }
 
@@ -451,22 +477,22 @@ function(y = NULL, r = NULL, c = "all") {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   c <- clean_num_input(c, 1, 4)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(c) <= 4 | !c %in% ots_products$product_code) {
+  
+  if (!nchar(c) <= 4 | !c %in% products()$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
-
+  
   query <- glue::glue_sql(
     "
     SELECT *
@@ -475,7 +501,7 @@ function(y = NULL, r = NULL, c = "all") {
     ",
     .con = pool
   )
-
+  
   if (r != "all" & nchar(r) == 3) {
     query <- glue::glue_sql(
       query,
@@ -483,7 +509,7 @@ function(y = NULL, r = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (r != "all" & nchar(r) == 4) {
     r_expanded_alias <- switch(
       r,
@@ -493,7 +519,7 @@ function(y = NULL, r = NULL, c = "all") {
       "c-eu" = countries_europe,
       "c-oc" = countries_oceania
     )
-
+    
     query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
@@ -501,7 +527,7 @@ function(y = NULL, r = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (c != "all" & nchar(c) != 2) {
     query <- glue::glue_sql(
       query,
@@ -509,7 +535,7 @@ function(y = NULL, r = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (c != "all" & nchar(c) == 2) {
     query <- glue::glue_sql(
       query,
@@ -517,9 +543,9 @@ function(y = NULL, r = NULL, c = "all") {
       .con = pool
     )
   }
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   if (nrow(data) == 0) {
     data <- tibble(
       year = y,
@@ -528,7 +554,7 @@ function(y = NULL, r = NULL, c = "all") {
       observation = "No data available for these filtering parameters"
     )
   }
-
+  
   return(data)
 }
 
@@ -544,28 +570,28 @@ function(y = NULL, r = NULL, p = NULL) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   p <- clean_char_input(p, 1, 4)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(p) <= 4 | !p %in% c(ots_countries$country_iso)) {
+  
+  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
-
+  
   query <- glue::glue_sql("
                     SELECT *
                     FROM public.hs07_yrp
                     WHERE year = {y}
                     ", .con = pool)
-
+  
   if (r != "all" & nchar(r) == 3) {
     query <- glue::glue_sql(
       query,
@@ -573,7 +599,7 @@ function(y = NULL, r = NULL, p = NULL) {
       .con = pool
     )
   }
-
+  
   if (r != "all" & nchar(r) == 4) {
     r_expanded_alias <- switch(
       r,
@@ -583,7 +609,7 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-eu" = countries_europe,
       "c-oc" = countries_oceania
     )
-
+    
     query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
@@ -591,7 +617,7 @@ function(y = NULL, r = NULL, p = NULL) {
       .con = pool
     )
   }
-
+  
   if (p != "all" & nchar(p) == 3) {
     query <- glue::glue_sql(
       query,
@@ -599,7 +625,7 @@ function(y = NULL, r = NULL, p = NULL) {
       .con = pool
     )
   }
-
+  
   if (p != "all" & nchar(p) == 4) {
     p2 <- switch(
       p,
@@ -609,7 +635,7 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-eu" = countries_europe,
       "c-oc" = countries_oceania
     )
-
+    
     query <- glue::glue_sql(
       query,
       " AND partner_iso IN ({vals*})",
@@ -617,9 +643,9 @@ function(y = NULL, r = NULL, p = NULL) {
       .con = pool
     )
   }
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   if (nrow(data) == 0) {
     data <- tibble(
       year = y,
@@ -628,7 +654,7 @@ function(y = NULL, r = NULL, p = NULL) {
       observation = "No data available for these filtering parameters"
     )
   }
-
+  
   return(data)
 }
 
@@ -645,17 +671,17 @@ function(y = NULL, r = NULL, p = NULL) {
   r <- clean_char_input(r, 1, 4)
   p <- clean_char_input(p, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  if (!nchar(p) <= 4 | !p %in% c(ots_countries$country_iso)) {
+  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
@@ -718,7 +744,7 @@ function(y = NULL, r = NULL, p = NULL) {
     )
   }
   
-  data <- dbGetQuery(pool, query)
+  data <- dbGetQuery_cached(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -746,27 +772,27 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   r <- clean_char_input(r, 1, 4)
   p <- clean_char_input(p, 1, 4)
   c <- clean_num_input(c, 1, 4)
-
-  if (nchar(y) != 4 | !y >= min_year | !y <= max_year) {
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
     return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(r) <= 4 | !r %in% c(ots_countries$country_iso)) {
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
     return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(p) <= 4 | !p %in% c(ots_countries$country_iso)) {
+  
+  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
     return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
     stop()
   }
-
-  if (!nchar(c) <= 4 | !c %in% ots_products$product_code) {
+  
+  if (!nchar(c) <= 4 | !c %in% products()$product_code) {
     return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
-
+  
   query <- glue::glue_sql(
     "
     SELECT *
@@ -775,7 +801,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
     ",
     .con = pool
   )
-
+  
   if (r != "all" & nchar(r) == 3) {
     query <- glue::glue_sql(
       query,
@@ -783,7 +809,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (r != "all" & nchar(r) == 4) {
     r_expanded_alias <- switch(
       r,
@@ -793,7 +819,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-eu" = countries_europe,
       "c-oc" = countries_oceania
     )
-
+    
     query <- glue::glue_sql(
       query,
       " AND reporter_iso IN ({vals*})",
@@ -801,7 +827,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (p != "all" & nchar(p) == 3) {
     query <- glue::glue_sql(
       query,
@@ -809,7 +835,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (p != "all" & nchar(p) == 4) {
     p2 <- switch(
       p,
@@ -819,7 +845,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-eu" = countries_europe,
       "c-oc" = countries_oceania
     )
-
+    
     query <- glue::glue_sql(
       query,
       " AND partner_iso IN ({vals*})",
@@ -827,7 +853,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (c != "all" & nchar(c) != 2) {
     query <- glue::glue_sql(
       query,
@@ -835,7 +861,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       .con = pool
     )
   }
-
+  
   if (c != "all" & nchar(c) == 2) {
     query <- glue::glue_sql(
       query,
@@ -843,9 +869,9 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       .con = pool
     )
   }
-
-  data <- dbGetQuery(pool, query)
-
+  
+  data <- dbGetQuery_cached(pool, query)
+  
   if (nrow(data) == 0) {
     data <- tibble(
       year = y,
@@ -855,7 +881,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       observation = "No data available for these filtering parameters"
     )
   }
-
+  
   return(data)
 }
 
@@ -917,5 +943,5 @@ function() {
 #* @get /year_range
 
 function() {
-  tibble(year = c(min_year, max_year))
+  tibble(year = c(min_year(), max_year()))
 }
