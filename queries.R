@@ -88,9 +88,10 @@ function() {
 # Countries ---------------------------------------------------------------
 
 countries <- function() {
-  return(
-    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_countries"))
-  )
+  d <- dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_countries"))
+  d2 <- data.table::fread("aliases/countries.csv")
+  d <- bind_rows(d, d2)
+  return(d)
 }
 
 #* Echo back the result of a query on attributes_countries table
@@ -135,9 +136,10 @@ countries_oceania <- countries() %>%
 # Products ----------------------------------------------------------------
 
 products <- function() {
-  return(
-    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_products"))
-  )
+  d <- dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_products"))
+  d2 <- data.table::fread("aliases/products.csv")
+  d <- bind_rows(d, d2)
+  return(d)
 }
 
 #* Echo back the result of a query on attributes_products table
