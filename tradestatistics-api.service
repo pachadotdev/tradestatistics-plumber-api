@@ -1,11 +1,11 @@
 [Unit]
-Description=Plumber API
+Description=Open Trade Statistics API
 After=postgresql
 
 [Service]
-ExecStart=/usr/bin/Rscript -e "api <- plumber::plumb('/apis/tradestatistics/queries.R'); api$run(port=8080, host='0.0.0.0', swagger = TRUE)"
+ExecStart=/usr/bin/Rscript -e "api <- plumber::plumb('/apis/tradestatistics/queries.R'); api$run(port=8080, host='0.0.0.0', swagger = FALSE)"
 Restart=on-abnormal
-WorkingDirectory=/apis/tradestatistics/
+WorkingDirectory=/tradestatistics/api
 
 [Install]
 WantedBy=multi-user.target
