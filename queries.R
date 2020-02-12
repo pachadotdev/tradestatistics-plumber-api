@@ -53,20 +53,22 @@ clean_num_input <- function(x, i, j) {
 
 # Caching -----------------------------------------------------------------
 
-dbGetQuery_cached <- memoise::memoise(dbGetQuery, cache = memoise::cache_filesystem("cache"))
+# caching was disabled to save disk
+# db indexing is really fast anyways
+# dbGetQuery_cached <- memoise::memoise(dbGetQuery, cache = memoise::cache_filesystem("cache"))
 
 # Available years in the DB -----------------------------------------------
 
 min_year <- function() {
   return(
-    dbGetQuery_cached(pool, glue::glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% 
+    dbGetQuery(pool, glue::glue_sql("SELECT MIN(year) FROM public.hs07_yr")) %>% 
       as.numeric()
   )
 }
 
 max_year <- function() {
   return(
-    dbGetQuery_cached(pool, glue::glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% 
+    dbGetQuery(pool, glue::glue_sql("SELECT MAX(year) FROM public.hs07_yr")) %>% 
       as.numeric()
   )
 }
@@ -88,7 +90,7 @@ function() {
 # Countries ---------------------------------------------------------------
 
 countries <- function() {
-  d <- dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_countries"))
+  d <- dbGetQuery(pool, glue::glue_sql("SELECT * FROM public.attributes_countries"))
   d2 <- data.table::fread("aliases/countries.csv")
   d <- bind_rows(d, d2)
   return(d)
@@ -136,7 +138,7 @@ countries_oceania <- countries() %>%
 # Products ----------------------------------------------------------------
 
 products <- function() {
-  d <- dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_products"))
+  d <- dbGetQuery(pool, glue::glue_sql("SELECT * FROM public.attributes_products"))
   d2 <- data.table::fread("aliases/products.csv")
   d <- bind_rows(d, d2)
   return(d)
@@ -151,7 +153,7 @@ function() { products() }
 
 communities <- function() {
   return(
-    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_communities"))
+    dbGetQuery(pool, glue::glue_sql("SELECT * FROM public.attributes_communities"))
   )
 }
 
@@ -164,7 +166,7 @@ function() { communities() }
 
 products_shortnames <- function() {
   return(
-    dbGetQuery_cached(pool, glue::glue_sql("SELECT * FROM public.attributes_products_shortnames"))
+    dbGetQuery(pool, glue::glue_sql("SELECT * FROM public.attributes_products_shortnames"))
   )
 }
 
@@ -219,7 +221,7 @@ function(y = NULL, c = "all") {
     )
   }
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -257,7 +259,7 @@ function(y = 2017) {
     .con = pool
   )
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   data <- data %>%
     filter(pci_rank_fitness_method > 0) %>% 
@@ -322,7 +324,7 @@ function(y = NULL, r = NULL) {
     )
   }
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -393,7 +395,7 @@ function(y = NULL, r = NULL) {
     )
   }
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -428,7 +430,7 @@ function(y = 2017) {
     .con = pool
   )
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   return(data)
 }
@@ -458,7 +460,7 @@ function(y = 2017) {
     .con = pool
   )
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   data <- data %>%
     filter(eci_rank_fitness_method > 0) %>% 
@@ -546,7 +548,7 @@ function(y = NULL, r = NULL, c = "all") {
     )
   }
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -646,7 +648,7 @@ function(y = NULL, r = NULL, p = NULL) {
     )
   }
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -746,7 +748,7 @@ function(y = NULL, r = NULL, p = NULL) {
     )
   }
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
@@ -872,7 +874,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
     )
   }
   
-  data <- dbGetQuery_cached(pool, query)
+  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
     data <- tibble(
