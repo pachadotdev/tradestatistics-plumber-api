@@ -5,7 +5,7 @@
 library(dplyr)
 library(RPostgreSQL)
 
-# Read credentials from file in .gitignore --------------------------------
+# Read credentials from file excluded in .gitignore --------------------------------
 
 readRenviron("/tradestatistics/api")
 
