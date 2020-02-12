@@ -7,7 +7,7 @@ library(RPostgreSQL)
 
 # Read credentials from file excluded in .gitignore --------------------------------
 
-readRenviron("/tradestatistics/api")
+readRenviron("/tradestatistics/plumber-api")
 
 # DB connection parameters ------------------------------------------------
 
