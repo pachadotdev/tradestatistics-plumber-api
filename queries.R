@@ -19,14 +19,6 @@ pool <- pool::dbPool(
   password = Sys.getenv("dbpwd")
 )
 
-# pool <- pool::dbPool(
-#   drv = dbDriver("PostgreSQL"),
-#   dbname = "",
-#   host = "",
-#   user = "",
-#   password = ""
-# )
-
 # Clean inputs ------------------------------------------------------------
 
 clean_char_input <- function(x, i, j) {
@@ -50,12 +42,6 @@ clean_num_input <- function(x, i, j) {
   
   return(y)
 }
-
-# Caching -----------------------------------------------------------------
-
-# caching was disabled to save disk
-# db indexing is really fast anyways
-# dbGetQuery_cached <- memoise::memoise(dbGetQuery, cache = memoise::cache_filesystem("cache"))
 
 # Available years in the DB -----------------------------------------------
 
