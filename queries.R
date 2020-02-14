@@ -648,106 +648,6 @@ function(y = NULL, r = NULL, p = NULL) {
   return(data)
 }
 
-# YRP short ---------------------------------------------------------------
-
-#* Echo back the result of a query on yrp table
-#* @param y Year
-#* @param r Reporter ISO
-#* @param p Partner ISO
-#* @get /yrp_short
-
-function(y = NULL, r = NULL, p = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  p <- clean_char_input(p, 1, 4)
-  
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
-    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue::glue_sql("
-                    SELECT year, reporter_iso, partner_iso, export_value_usd, import_value_usd
-                    FROM public.hs07_yrp
-                    WHERE year = {y}
-                    ", .con = pool)
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue::glue_sql(
-      query,
-      " AND reporter_iso = {r}",
-      .con = pool
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    query <- glue::glue_sql(
-      query,
-      " AND reporter_iso IN ({vals*})",
-      vals = r_expanded_alias$country_iso,
-      .con = pool
-    )
-  }
-  
-  if (p != "all" & nchar(p) == 3) {
-    query <- glue::glue_sql(
-      query,
-      " AND partner_iso = {p}",
-      .con = pool
-    )
-  }
-  
-  if (p != "all" & nchar(p) == 4) {
-    p2 <- switch(
-      p,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    query <- glue::glue_sql(
-      query,
-      " AND partner_iso IN ({vals*})",
-      vals = p2$country_iso,
-      .con = pool
-    )
-  }
-  
-  data <- dbGetQuery(pool, query)
-  
-  if (nrow(data) == 0) {
-    data <- tibble(
-      year = y,
-      reporter_iso = r,
-      partner_iso = p,
-      observation = "No data available for these filtering parameters"
-    )
-  }
-  
-  return(data)
-}
-
 # YRPC --------------------------------------------------------------------
 
 #* Echo back the result of a query on yrpc table
@@ -892,7 +792,6 @@ function() {
       "product_rankings",
       "yrpc",
       "yrp",
-      "yrp_short",
       "yrc",
       "yrc_exports",
       "yrc_imports",
