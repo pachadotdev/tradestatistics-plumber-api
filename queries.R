@@ -781,7 +781,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
 #* @get /tables
 
 function() {
-  tibble::tibble(
+  tibble(
     table = c(
       "countries",
       "products",
@@ -793,10 +793,7 @@ function() {
       "yrpc",
       "yrp",
       "yrc",
-      "yrc_exports",
-      "yrc_imports",
       "yr",
-      "yr_short",
       "yc"
     ),
     description = c(
@@ -809,19 +806,15 @@ function() {
       "Ranking of products",
       "Bilateral trade at product level (Year, Reporter, Partner and Product Code)",
       "Reporter trade at aggregated level (Year, Reporter and Partner)",
-      "Reporter trade at aggregated level (Year, Reporter and Partner), imports and exports only",
       "Reporter trade at aggregated level (Year, Reporter and Product Code)",
-      "Reporter trade at aggregated level (Year, Reporter and Product Code), exports only",
-      "Reporter trade at aggregated level (Year, Reporter and Product Code), imports only",
       "Reporter trade at aggregated level (Year and Reporter)",
-      "Reporter trade at aggregated level (Year and Reporter), imports and exports only",
       "Product trade at aggregated level (Year and Product Code)"
     ),
     source = c(
       rep("UN Comtrade",3),
       "Center for International Development at Harvard University",
       "The Observatory of Economic Complexity (with modifications)",
-      rep("Open Trade Statistics",11)
+      rep("Open Trade Statistics",7)
     )
   )
 }
