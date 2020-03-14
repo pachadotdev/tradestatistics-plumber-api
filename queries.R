@@ -45,6 +45,8 @@ clean_num_input <- function(x, i, j) {
   return(y)
 }
 
+y_len_limit <- 5
+
 # Available years in the DB -----------------------------------------------
 
 min_year <- function() {
@@ -177,11 +179,18 @@ function() { products_shortnames() }
 #* @get /yc
 
 function(y = NULL, c = "all") {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
+  
   c <- clean_num_input(c, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -191,7 +200,7 @@ function(y = NULL, c = "all") {
   }
   
   query <- tbl(pool, in_schema("public", "hs07_yc")) %>% 
-    filter(year == y)
+    filter(year %in% y)
   
   if (c != "all" & nchar(c) != 2) {
     query <- query %>% 
@@ -223,18 +232,22 @@ function(y = NULL, c = "all") {
 #* @get /product_rankings
 
 function(y = 2017) {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value.")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  stopifnot(is.integer(y))
-  
   data <- tbl(pool, in_schema("public", "hs07_yc")) %>% 
     select(year, product_code, pci_fitness_method, pci_rank_fitness_method) %>% 
-    filter(year == y, pci_rank_fitness_method > 0) %>% 
+    filter(year %in% y, pci_rank_fitness_method > 0) %>% 
     arrange(pci_rank_fitness_method) %>% 
     collect()
   
@@ -249,11 +262,18 @@ function(y = 2017) {
 #* @get /yr
 
 function(y = NULL, r = NULL) {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
+  
   r <- clean_char_input(r, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -263,7 +283,7 @@ function(y = NULL, r = NULL) {
   }
   
   query <- tbl(pool, in_schema("public", "hs07_yr")) %>% 
-    filter(year == y)
+    filter(year %in% y)
   
   if (r != "all" & nchar(r) == 3) {
     query <- query %>% 
@@ -305,11 +325,18 @@ function(y = NULL, r = NULL) {
 #* @get /yr_short
 
 function(y = NULL, r = NULL) {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
+  
   r <- clean_char_input(r, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -322,7 +349,7 @@ function(y = NULL, r = NULL) {
     select(year, reporter_iso, export_value_usd, import_value_usd,
            top_export_product_code, top_export_trade_value_usd,
            top_import_product_code, top_import_trade_value_usd) %>% 
-    filter(year == y)
+    filter(year %in% y)
   
   if (r != "all" & nchar(r) == 3) {
     query <- query %>% 
@@ -362,16 +389,22 @@ function(y = NULL, r = NULL) {
 #* @get /reporters
 
 function(y = 2017) {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value.")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
   data <- tbl(pool, in_schema("public", "hs07_yr")) %>% 
-    filter(year == y) %>% 
-    select(reporter_iso) %>% 
+    filter(year %in% y) %>% 
+    select(year, reporter_iso) %>% 
     collect()
   
   return(data)
@@ -384,18 +417,22 @@ function(y = 2017) {
 #* @get /country_rankings
 
 function(y = 2017) {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value.")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
-  stopifnot(is.integer(y))
-  
   data <- tbl(pool, in_schema("public", "hs07_yr")) %>% 
     select(year, reporter_iso, eci_fitness_method, eci_rank_fitness_method) %>% 
-    filter(year == y, eci_rank_fitness_method > 0) %>% 
+    filter(year %in% y, eci_rank_fitness_method > 0) %>% 
     arrange(eci_rank_fitness_method) %>% 
     collect()
   
@@ -411,12 +448,20 @@ function(y = 2017) {
 #* @get /yrc
 
 function(y = NULL, r = NULL, c = "all") {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
+  
   r <- clean_char_input(r, 1, 4)
+  
   c <- clean_num_input(c, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -431,7 +476,7 @@ function(y = NULL, r = NULL, c = "all") {
   }
   
   query <- tbl(pool, in_schema("public", "hs07_yrc")) %>% 
-    filter(year == y)
+    filter(year %in% y)
 
   if (r != "all" & nchar(r) == 3) {
     query <- query %>% 
@@ -485,12 +530,20 @@ function(y = NULL, r = NULL, c = "all") {
 #* @get /yrp
 
 function(y = NULL, r = NULL, p = NULL) {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
+  
   r <- clean_char_input(r, 1, 4)
+  
   p <- clean_char_input(p, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -505,7 +558,7 @@ function(y = NULL, r = NULL, p = NULL) {
   }
   
   query <- tbl(pool, in_schema("public", "hs07_yrp")) %>% 
-    filter(year == y)
+    filter(year %in% y)
 
   if (r != "all" & nchar(r) == 3) {
     query <- query %>% 
@@ -569,13 +622,22 @@ function(y = NULL, r = NULL, p = NULL) {
 #* @get /yrpc
 
 function(y = NULL, r = NULL, p = NULL, c = "all") {
-  y <- as.integer(y)
+  y <- if (nchar(y) == 4) {
+    as.integer(y)
+  } else {
+    if (str_sub(y, 5, 5) == ":") {
+      as.integer(str_sub(y, 1, 4)):as.integer(str_sub(y, 6, 9))
+    }
+  }
+  
   r <- clean_char_input(r, 1, 4)
+  
   p <- clean_char_input(p, 1, 4)
+  
   c <- clean_num_input(c, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+  if (!all(nchar(y) == 4) | !min(y) >= min_year() | !max(y) <= max_year() | length(y) > y_len_limit) {
+    return("The specified years are not valid integer values or the vector is out of range. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -595,7 +657,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   }
   
   query <- tbl(pool, in_schema("public", "hs07_yrpc")) %>% 
-    filter(year == y)
+    filter(year %in% y)
   
   if (r != "all" & nchar(r) == 3) {
     query <- query %>% 
