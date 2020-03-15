@@ -1090,7 +1090,7 @@ function() {
     ),
     source = c(
       rep("UN Comtrade",3),
-      "Center for International Development at Harvard University",
+      "Center for International Development at Harvard University (with modifications)",
       "The Observatory of Economic Complexity (with modifications)",
       rep("Open Trade Statistics",9)
     )
