@@ -795,7 +795,10 @@ function(y = NULL, r = NULL, p = NULL, g = "all") {
     stop()
   }
   
-  if (!nchar(g) <= 3 | !g %in% products()$product_code) {
+  product_group <- dbGetQuery(pool, "SELECT DISTINCT(group_code) FROM public.attributes_products") %>% 
+    pull()
+  
+  if (!nchar(g) <= 3 | !g %in% c(product_group, "all")) {
     return("The specified product group is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
