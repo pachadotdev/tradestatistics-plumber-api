@@ -299,10 +299,11 @@ function(y = NULL, r = NULL) {
       "c-oc" = countries_oceania
     )
     
+    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    
     query <- glue(
       query,
-      " AND reporter_iso IN ({vals*})",
-      vals = r_expanded_alias$country_iso
+      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
     )
   }
   
@@ -367,10 +368,11 @@ function(y = NULL, r = NULL) {
       "c-oc" = countries_oceania
     )
     
+    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    
     query <- glue(
       query,
-      " AND reporter_iso IN ({vals*})",
-      vals = r_expanded_alias$country_iso
+      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
     )
   }
   
@@ -499,10 +501,11 @@ function(y = NULL, r = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
     
+    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    
     query <- glue(
       query,
-      " AND reporter_iso IN ({vals*})",
-      vals = r_expanded_alias$country_iso
+      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
     )
   }
   
@@ -581,10 +584,11 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
     
+    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    
     query <- glue(
       query,
-      " AND reporter_iso IN ({vals*})",
-      vals = r_expanded_alias$country_iso
+      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
     )
   }
   
@@ -596,7 +600,7 @@ function(y = NULL, r = NULL, p = NULL) {
   }
   
   if (p != "all" & nchar(p) == 4) {
-    p2 <- switch(
+    p_expanded_alias <- switch(
       p,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -605,10 +609,11 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
     
+    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    
     query <- glue(
       query,
-      " AND partner_iso IN ({vals*})",
-      vals = p2$country_iso
+      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
     )
   }
   
@@ -661,6 +666,18 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
     stop()
   }
   
+  if (all(c(r, p , c) == "all")) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      partner_iso = p,
+      product_code = c,
+      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+    )
+    
+    return(data)
+  }
+  
   query <- glue(
     "
     SELECT *
@@ -686,10 +703,11 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
     
+    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    
     query <- glue(
       query,
-      " AND reporter_iso IN ({vals*})",
-      vals = r_expanded_alias$country_iso
+      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
     )
   }
   
@@ -710,10 +728,11 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
     
+    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    
     query <- glue(
       query,
-      " AND partner_iso IN ({vals*})",
-      vals = p2$country_iso
+      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
     )
   }
   
