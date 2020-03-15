@@ -888,6 +888,7 @@ function(y = NULL, r = NULL, p = NULL, g = "all") {
     ON (lhs.product_code = rhs.product_code)
     ) AS res
     GROUP BY year, reporter_iso, partner_iso, group_code
+    ORDER BY group_code
     "
   )
   
@@ -899,6 +900,148 @@ function(y = NULL, r = NULL, p = NULL, g = "all") {
       reporter_iso = r,
       partner_iso = p,
       group_code = g,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
+# YRPO --------------------------------------------------------------------
+
+#* Echo back the result of a query on yrpc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param p Partner ISO
+#* @param o Product community
+#* @get /yrpo
+
+function(y = NULL, r = NULL, p = NULL, o = "all") {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  p <- clean_char_input(p, 1, 4)
+  o <- clean_num_input(o, 1, 3)
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  product_community <- dbGetQuery(pool, glue("SELECT DISTINCT(community_code) FROM public.attributes_communities")) %>% 
+    pull()
+  
+  if (!nchar(o) <= 3 | !o %in% c(product_community, "all")) {
+    return("The specified product community is not a valid string. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  query <- glue(
+    "
+    SELECT year, reporter_iso, partner_iso, community_code, 
+           SUM(export_value_usd) AS export_value_usd,
+           SUM(import_value_usd) AS import_value_usd
+    FROM(
+    SELECT lhs.year as year, 
+           lhs.reporter_iso as reporter_iso, 
+           lhs.partner_iso as partner_iso,
+           lhs.product_code as product_code, 
+           lhs.export_value_usd as export_value_usd,
+           lhs.import_value_usd as import_value_usd,
+           rhs.community_code as community_code
+    FROM (
+    SELECT *
+    FROM public.hs07_yrpc
+    WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r_expanded_alias <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 3) {
+    query <- glue(
+      query,
+      " AND partner_iso = '{p}'"
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 4) {
+    p2 <- switch(
+      p,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
+    )
+  }
+  
+  if (nchar(o) == 2) {
+    query <- glue(
+      query,
+      " AND LEFT(product_code, 2) = '{o}'"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    ) AS lhs
+    INNER JOIN (SELECT product_code, community_code FROM public.attributes_communities) AS rhs
+    ON (lhs.product_code = rhs.product_code)
+    ) AS res
+    GROUP BY year, reporter_iso, partner_iso, community_code
+    ORDER BY community_code
+    "
+  )
+  
+  data <- dbGetQuery(pool, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      partner_iso = p,
+      comunity_code = o,
       observation = "No data available for these filtering parameters"
     )
   }
