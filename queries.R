@@ -1066,6 +1066,7 @@ function() {
       "product_rankings",
       "yrpc",
       "yrpg",
+      "yrpo",
       "yrp",
       "yrc",
       "yr",
@@ -1081,6 +1082,7 @@ function() {
       "Ranking of products",
       "Bilateral trade at product level (Year, Reporter, Partner and Product Code)",
       "Bilateral trade at group level (Year, Reporter, Partner and Product Group)",
+      "Bilateral trade at group level (Year, Reporter, Partner and Product Community)",
       "Reporter trade at aggregated level (Year, Reporter and Partner)",
       "Reporter trade at aggregated level (Year, Reporter and Product Code)",
       "Reporter trade at aggregated level (Year and Reporter)",
@@ -1090,7 +1092,7 @@ function() {
       rep("UN Comtrade",3),
       "Center for International Development at Harvard University",
       "The Observatory of Economic Complexity (with modifications)",
-      rep("Open Trade Statistics",8)
+      rep("Open Trade Statistics",9)
     )
   )
 }
