@@ -2,11 +2,11 @@
 
 # Packages ----------------------------------------------------------------
 
+library(pool)
+library(RPostgres)
 library(dplyr)
 library(stringr)
 library(glue)
-library(pool)
-library(RPostgres)
 
 # Read credentials from file excluded in .gitignore --------------------------------
 
@@ -181,7 +181,7 @@ function(y = NULL, c = "all") {
   }
   
   if (!nchar(c) <= 4 | !c %in% products()$product_code) {
-    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
+    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -472,7 +472,7 @@ function(y = NULL, r = NULL, c = "all") {
   }
   
   if (!nchar(c) <= 4 | !c %in% products()$product_code) {
-    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
+    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -662,7 +662,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   }
   
   if (!nchar(c) <= 4 | !c %in% products()$product_code) {
-    return("The specified product is not a valid string. Read the documentation: tradestatistics.io")
+    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
     stop()
   }
   
@@ -765,6 +765,144 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   return(data)
 }
 
+# YRPG --------------------------------------------------------------------
+
+#* Echo back the result of a query on yrpc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param p Partner ISO
+#* @param g Product group
+#* @get /yrpg
+
+function(y = NULL, r = NULL, p = NULL, g = "all") {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  p <- clean_char_input(p, 1, 4)
+  g <- clean_num_input(g, 1, 3)
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(g) <= 3 | !g %in% products()$product_code) {
+    return("The specified product group is not a valid string. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  query <- glue(
+    "
+    SELECT year, reporter_iso, partner_iso, group_code, 
+           SUM(export_value_usd) AS export_value_usd,
+           SUM(import_value_usd) AS import_value_usd
+    FROM(
+    SELECT lhs.year as year, 
+           lhs.reporter_iso as reporter_iso, 
+           lhs.partner_iso as partner_iso,
+           lhs.product_code as product_code, 
+           lhs.export_value_usd as export_value_usd,
+           lhs.import_value_usd as import_value_usd,
+           rhs.group_code as group_code
+    FROM (
+    SELECT *
+    FROM public.hs07_yrpc
+    WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r_expanded_alias <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 3) {
+    query <- glue(
+      query,
+      " AND partner_iso = '{p}'"
+    )
+  }
+  
+  if (p != "all" & nchar(p) == 4) {
+    p2 <- switch(
+      p,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
+    )
+  }
+  
+  if (nchar(g) == 2) {
+    query <- glue(
+      query,
+      " AND LEFT(product_code, 2) = '{g}'"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    ) AS lhs
+    INNER JOIN (SELECT product_code, group_code FROM public.attributes_products) AS rhs
+    ON (lhs.product_code = rhs.product_code)
+    ) AS res
+    GROUP BY year, reporter_iso, partner_iso, group_code
+    "
+  )
+  
+  data <- dbGetQuery(pool, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      partner_iso = p,
+      group_code = g,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
 # Available tables --------------------------------------------------------
 
 #* All the tables generated by this API
@@ -781,6 +919,7 @@ function() {
       "country_rankings",
       "product_rankings",
       "yrpc",
+      "yrpg",
       "yrp",
       "yrc",
       "yr",
@@ -795,6 +934,7 @@ function() {
       "Ranking of countries",
       "Ranking of products",
       "Bilateral trade at product level (Year, Reporter, Partner and Product Code)",
+      "Bilateral trade at group level (Year, Reporter, Partner and Product Group)",
       "Reporter trade at aggregated level (Year, Reporter and Partner)",
       "Reporter trade at aggregated level (Year, Reporter and Product Code)",
       "Reporter trade at aggregated level (Year and Reporter)",
@@ -804,7 +944,7 @@ function() {
       rep("UN Comtrade",3),
       "Center for International Development at Harvard University",
       "The Observatory of Economic Complexity (with modifications)",
-      rep("Open Trade Statistics",7)
+      rep("Open Trade Statistics",8)
     )
   )
 }
