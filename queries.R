@@ -80,7 +80,7 @@ function() {
 
 countries <- function() {
   d <- dbGetQuery(pool, glue("SELECT * FROM public.attributes_countries"))
-  d2 <- readr::read_csv("aliases/countries.csv")
+  d2 <- data.table::fread("aliases/countries.csv")
   d <- bind_rows(d, d2)
   return(d)
 }
@@ -128,7 +128,7 @@ countries_oceania <- countries() %>%
 
 products <- function() {
   d <- dbGetQuery(pool, glue("SELECT * FROM public.attributes_products"))
-  d2 <- readr::read_csv("aliases/products.csv")
+  d2 <- data.table::fread("aliases/products.csv")
   d <- bind_rows(d, d2)
   return(d)
 }
@@ -290,7 +290,7 @@ function(y = NULL, r = NULL) {
   }
   
   if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
+    r2 <- switch(
       r,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -299,11 +299,11 @@ function(y = NULL, r = NULL) {
       "c-oc" = countries_oceania
     )
     
-    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    r2 <- sprintf("'%s'", r2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
     )
   }
   
@@ -325,7 +325,7 @@ function(y = NULL, r = NULL) {
 #* Echo back the result of a query on yr table
 #* @param y Year
 #* @param r Reporter ISO
-#* @get /yr_short
+#* @get /yr-short
 
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
@@ -359,7 +359,7 @@ function(y = NULL, r = NULL) {
   }
   
   if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
+    r2 <- switch(
       r,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -368,13 +368,429 @@ function(y = NULL, r = NULL) {
       "c-oc" = countries_oceania
     )
     
-    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    r2 <- sprintf("'%s'", r2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
     )
   }
+  
+  data <- dbGetQuery(pool, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
+# YR-GA ----------------------------------------------------------------------
+
+#* Echo back the result of a query on yrc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @get /yr-ga
+
+function(y = NULL, r = NULL) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  query <- glue(
+    "
+    SELECT year, reporter_iso, export_value_usd, import_value_usd,
+	   top_export_group_code, top_export_trade_value_usd,
+	   top_import_group_code, top_import_trade_value_usd
+    FROM(
+    	SELECT lhs.year as year, 
+    	       lhs.reporter_iso as reporter_iso, 
+    	       lhs.export_value_usd as export_value_usd,
+    	       lhs.import_value_usd as import_value_usd,
+    	       rhsexp.top_export_group_code as top_export_group_code,
+    	       rhsexp.top_export_trade_value_usd as top_export_trade_value_usd,
+    	       rhsimp.top_import_group_code as top_import_group_code,
+    		   rhsimp.top_import_trade_value_usd as top_import_trade_value_usd
+    	FROM (
+    		SELECT year, reporter_iso, export_value_usd, import_value_usd
+    		FROM public.hs07_yr
+        WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    ) AS lhs
+    LEFT JOIN (
+		SELECT reporter_iso,
+			   group_code AS top_export_group_code,
+			   export_value_usd AS top_export_trade_value_usd
+		FROM (
+			SELECT reporter_iso, group_code, export_value_usd, MAX(export_value_usd) OVER () AS mev
+			FROM (
+				SELECT rhsexp12.reporter_iso AS reporter_iso,
+					     rhsexp22.group_code AS group_code,
+					     SUM(export_value_usd) AS export_value_usd
+				FROM (
+					SELECT reporter_iso, product_code, export_value_usd
+					FROM public.hs07_yrc
+					WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+  				) AS rhsexp12
+  				INNER JOIN (
+  					SELECT product_code, group_code FROM public.attributes_products
+  				) AS rhsexp22
+  				ON (rhsexp12.product_code = rhsexp22.product_code)
+  				GROUP BY rhsexp12.reporter_iso, rhsexp22.group_code
+  			) rhsexpnf
+  		) AS rhsexpf
+  		WHERE export_value_usd = mev
+  	) AS rhsexp
+  	ON (lhs.reporter_iso = rhsexp.reporter_iso)
+    "
+  )
+  
+  query <- glue(
+    query,
+    "
+    LEFT JOIN (
+		SELECT reporter_iso,
+			   group_code AS top_import_group_code,
+			   import_value_usd AS top_import_trade_value_usd
+		FROM (
+			SELECT reporter_iso, group_code, import_value_usd, MAX(import_value_usd) OVER () AS miv
+			FROM (
+				SELECT rhsimp12.reporter_iso AS reporter_iso,
+					   rhsimp22.group_code AS group_code,
+					   SUM(import_value_usd) AS import_value_usd
+				FROM (
+					SELECT reporter_iso,
+						   product_code,
+						   import_value_usd
+					FROM public.hs07_yrc
+					WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    				) as rhsimp12
+    				inner join (
+    					SELECT product_code, group_code FROM public.attributes_products
+    				) as rhsimp22
+    				on (rhsimp12.product_code = rhsimp22.product_code)
+    				GROUP BY rhsimp12.reporter_iso, rhsimp22.group_code
+    			) rhsimpnf
+    		) AS rhsimpf
+    		WHERE import_value_usd = miv
+    	) as rhsimp
+    	ON (lhs.reporter_iso = rhsimp.reporter_iso)
+    ) AS res
+    "
+  )
+  
+  data <- dbGetQuery(pool, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
+# YR-CA ----------------------------------------------------------------------
+
+#* Echo back the result of a query on yrc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @get /yr-ca
+
+function(y = NULL, r = NULL) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  query <- glue(
+    "
+    SELECT year, reporter_iso, export_value_usd, import_value_usd,
+	   top_export_community_code, top_export_trade_value_usd,
+	   top_import_community_code, top_import_trade_value_usd
+    FROM(
+    	SELECT lhs.year as year, 
+    	       lhs.reporter_iso as reporter_iso, 
+    	       lhs.export_value_usd as export_value_usd,
+    	       lhs.import_value_usd as import_value_usd,
+    	       rhsexp.top_export_community_code as top_export_community_code,
+    	       rhsexp.top_export_trade_value_usd as top_export_trade_value_usd,
+    	       rhsimp.top_import_community_code as top_import_community_code,
+    		   rhsimp.top_import_trade_value_usd as top_import_trade_value_usd
+    	FROM (
+    		SELECT year, reporter_iso, export_value_usd, import_value_usd
+    		FROM public.hs07_yr
+        WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    ) AS lhs
+    LEFT JOIN (
+		SELECT reporter_iso,
+			   community_code AS top_export_community_code,
+			   export_value_usd AS top_export_trade_value_usd
+		FROM (
+			SELECT reporter_iso, community_code, export_value_usd, MAX(export_value_usd) OVER () AS mev
+			FROM (
+				SELECT rhsexp12.reporter_iso AS reporter_iso,
+					     rhsexp22.community_code AS community_code,
+					     SUM(export_value_usd) AS export_value_usd
+				FROM (
+					SELECT reporter_iso, product_code, export_value_usd
+					FROM public.hs07_yrc
+					WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+  				) AS rhsexp12
+  				INNER JOIN (
+  					SELECT product_code, community_code FROM public.attributes_communities
+  				) AS rhsexp22
+  				ON (rhsexp12.product_code = rhsexp22.product_code)
+  				GROUP BY rhsexp12.reporter_iso, rhsexp22.community_code
+  			) rhsexpnf
+  		) AS rhsexpf
+  		WHERE export_value_usd = mev
+  	) AS rhsexp
+  	ON (lhs.reporter_iso = rhsexp.reporter_iso)
+    "
+  )
+  
+  query <- glue(
+    query,
+    "
+    LEFT JOIN (
+		SELECT reporter_iso,
+			   community_code AS top_import_community_code,
+			   import_value_usd AS top_import_trade_value_usd
+		FROM (
+			SELECT reporter_iso, community_code, import_value_usd, MAX(import_value_usd) OVER () AS miv
+			FROM (
+				SELECT rhsimp12.reporter_iso AS reporter_iso,
+					   rhsimp22.community_code AS community_code,
+					   SUM(import_value_usd) AS import_value_usd
+				FROM (
+					SELECT reporter_iso,
+						   product_code,
+						   import_value_usd
+					FROM public.hs07_yrc
+					WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    				) as rhsimp12
+    				inner join (
+    					SELECT product_code, community_code FROM public.attributes_communities
+    				) as rhsimp22
+    				on (rhsimp12.product_code = rhsimp22.product_code)
+    				GROUP BY rhsimp12.reporter_iso, rhsimp22.community_code
+    			) rhsimpnf
+    		) AS rhsimpf
+    		WHERE import_value_usd = miv
+    	) as rhsimp
+    	ON (lhs.reporter_iso = rhsimp.reporter_iso)
+    ) AS res
+    "
+  )
   
   data <- dbGetQuery(pool, query)
   
@@ -492,7 +908,7 @@ function(y = NULL, r = NULL, c = "all") {
   }
   
   if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
+    r2 <- switch(
       r,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -501,11 +917,11 @@ function(y = NULL, r = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
     
-    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    r2 <- sprintf("'%s'", r2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
     )
   }
   
@@ -530,6 +946,222 @@ function(y = NULL, r = NULL, c = "all") {
       year = y,
       reporter_iso = r,
       product_code = c,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
+# YRC-GA --------------------------------------------------------------------
+
+#* Echo back the result of a query on yrc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param g Product group
+#* @get /yrc-ga
+
+function(y = NULL, r = NULL, g = "all") {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  g <- clean_num_input(g, 1, 3)
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  product_group <- dbGetQuery(pool, "SELECT DISTINCT(group_code) FROM public.attributes_products") %>% 
+    pull()
+  
+  if (!nchar(g) <= 3 | !g %in% c(product_group, "all")) {
+    return("The specified product group is not a valid string. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  query <- glue(
+    "
+    SELECT year, reporter_iso, group_code, 
+           SUM(export_value_usd) AS export_value_usd,
+           SUM(import_value_usd) AS import_value_usd
+    FROM(
+    SELECT lhs.year as year, 
+           lhs.reporter_iso as reporter_iso, 
+           lhs.product_code as product_code, 
+           lhs.export_value_usd as export_value_usd,
+           lhs.import_value_usd as import_value_usd,
+           rhs.group_code as group_code
+    FROM (
+    SELECT *
+    FROM public.hs07_yrc
+    WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  if (nchar(g) == 2) {
+    query <- glue(
+      query,
+      " AND LEFT(product_code, 2) = '{g}'"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    ) AS lhs
+    INNER JOIN (SELECT product_code, group_code FROM public.attributes_products) AS rhs
+    ON (lhs.product_code = rhs.product_code)
+    ) AS res
+    GROUP BY year, reporter_iso, group_code
+    ORDER BY group_code
+    "
+  )
+  
+  data <- dbGetQuery(pool, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      group_code = g,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  return(data)
+}
+
+# YRC-CA --------------------------------------------------------------------
+
+#* Echo back the result of a query on yrc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param o Product community
+#* @get /yrc-ca
+
+function(y = NULL, r = NULL, o = "all") {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  o <- clean_num_input(o, 1, 3)
+  
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  product_community <- dbGetQuery(pool, glue("SELECT DISTINCT(community_code) FROM public.attributes_communities")) %>% 
+    pull()
+  
+  if (!nchar(o) <= 3 | !o %in% c(product_community, "all")) {
+    return("The specified product community is not a valid string. Read the documentation: tradestatistics.io")
+    stop()
+  }
+  
+  query <- glue(
+    "
+    SELECT year, reporter_iso, community_code, 
+           SUM(export_value_usd) AS export_value_usd,
+           SUM(import_value_usd) AS import_value_usd
+    FROM(
+    SELECT lhs.year as year, 
+           lhs.reporter_iso as reporter_iso, 
+           lhs.product_code as product_code, 
+           lhs.export_value_usd as export_value_usd,
+           lhs.import_value_usd as import_value_usd,
+           rhs.community_code as community_code
+    FROM (
+    SELECT *
+    FROM public.hs07_yrc
+    WHERE year = {y}
+    "
+  )
+  
+  if (r != "all" & nchar(r) == 3) {
+    query <- glue(
+      query,
+      " AND reporter_iso = '{r}'"
+    )
+  }
+  
+  if (r != "all" & nchar(r) == 4) {
+    r2 <- switch(
+      r,
+      "c-af" = countries_africa,
+      "c-am" = countries_americas,
+      "c-as" = countries_asia,
+      "c-eu" = countries_europe,
+      "c-oc" = countries_oceania
+    )
+    
+    r2 <- sprintf("'%s'", r2$country_iso)
+    
+    query <- glue(
+      query,
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
+    )
+  }
+  
+  if (nchar(o) == 2) {
+    query <- glue(
+      query,
+      " AND LEFT(product_code, 2) = '{o}'"
+    )
+  }
+  
+  query <- glue(
+    query,
+    "
+    ) AS lhs
+    INNER JOIN (SELECT product_code, community_code FROM public.attributes_communities) AS rhs
+    ON (lhs.product_code = rhs.product_code)
+    ) AS res
+    GROUP BY year, reporter_iso, community_code
+    ORDER BY community_code
+    "
+  )
+  
+  data <- dbGetQuery(pool, query)
+  
+  if (nrow(data) == 0) {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      community_code = o,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -575,7 +1207,7 @@ function(y = NULL, r = NULL, p = NULL) {
   }
   
   if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
+    r2 <- switch(
       r,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -584,11 +1216,11 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
     
-    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    r2 <- sprintf("'%s'", r2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
     )
   }
   
@@ -600,7 +1232,7 @@ function(y = NULL, r = NULL, p = NULL) {
   }
   
   if (p != "all" & nchar(p) == 4) {
-    p_expanded_alias <- switch(
+    p2 <- switch(
       p,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -609,11 +1241,11 @@ function(y = NULL, r = NULL, p = NULL) {
       "c-oc" = countries_oceania
     )
     
-    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    p2 <- sprintf("'%s'", p2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(p2,  sep = ', ')})"
     )
   }
   
@@ -694,7 +1326,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   }
   
   if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
+    r2 <- switch(
       r,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -703,11 +1335,11 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
     
-    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    r2 <- sprintf("'%s'", r2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
     )
   }
   
@@ -728,11 +1360,11 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       "c-oc" = countries_oceania
     )
     
-    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    p2 <- sprintf("'%s'", p2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(p2,  sep = ', ')})"
     )
   }
   
@@ -765,14 +1397,14 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   return(data)
 }
 
-# YRPG --------------------------------------------------------------------
+# YRPC-GA --------------------------------------------------------------------
 
 #* Echo back the result of a query on yrpc table
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
 #* @param g Product group
-#* @get /yrpg
+#* @get /yrpc-ga
 
 function(y = NULL, r = NULL, p = NULL, g = "all") {
   y <- as.integer(y)
@@ -831,7 +1463,7 @@ function(y = NULL, r = NULL, p = NULL, g = "all") {
   }
   
   if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
+    r2 <- switch(
       r,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -840,11 +1472,11 @@ function(y = NULL, r = NULL, p = NULL, g = "all") {
       "c-oc" = countries_oceania
     )
     
-    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    r2 <- sprintf("'%s'", r2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
     )
   }
   
@@ -865,11 +1497,11 @@ function(y = NULL, r = NULL, p = NULL, g = "all") {
       "c-oc" = countries_oceania
     )
     
-    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    p2 <- sprintf("'%s'", p2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(p2,  sep = ', ')})"
     )
   }
   
@@ -907,14 +1539,14 @@ function(y = NULL, r = NULL, p = NULL, g = "all") {
   return(data)
 }
 
-# YRPO --------------------------------------------------------------------
+# YRPC-CA --------------------------------------------------------------------
 
 #* Echo back the result of a query on yrpc table
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
 #* @param o Product community
-#* @get /yrpo
+#* @get /yrpc-ca
 
 function(y = NULL, r = NULL, p = NULL, o = "all") {
   y <- as.integer(y)
@@ -973,7 +1605,7 @@ function(y = NULL, r = NULL, p = NULL, o = "all") {
   }
   
   if (r != "all" & nchar(r) == 4) {
-    r_expanded_alias <- switch(
+    r2 <- switch(
       r,
       "c-af" = countries_africa,
       "c-am" = countries_americas,
@@ -982,11 +1614,11 @@ function(y = NULL, r = NULL, p = NULL, o = "all") {
       "c-oc" = countries_oceania
     )
     
-    r_expanded_alias <- sprintf("'%s'", r_expanded_alias$country_iso)
+    r2 <- sprintf("'%s'", r2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(r_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
     )
   }
   
@@ -1007,11 +1639,11 @@ function(y = NULL, r = NULL, p = NULL, o = "all") {
       "c-oc" = countries_oceania
     )
     
-    p_expanded_alias <- sprintf("'%s'", p_expanded_alias$country_iso)
+    p2 <- sprintf("'%s'", p2$country_iso)
     
     query <- glue(
       query,
-      " AND reporter_iso IN ({glue_collapse(p_expanded_alias,  sep = ', ')})"
+      " AND reporter_iso IN ({glue_collapse(p2,  sep = ', ')})"
     )
   }
   
@@ -1041,7 +1673,7 @@ function(y = NULL, r = NULL, p = NULL, o = "all") {
       year = y,
       reporter_iso = r,
       partner_iso = p,
-      comunity_code = o,
+      community_code = o,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -1065,11 +1697,14 @@ function() {
       "country_rankings",
       "product_rankings",
       "yrpc",
-      "yrpg",
-      "yrpo",
+      "yrpc-ga",
+      "yrpc-ca",
       "yrp",
       "yrc",
+      "yrc-ga",
+      "yrc-ca",
       "yr",
+      "yr-short",
       "yc"
     ),
     description = c(
@@ -1082,17 +1717,20 @@ function() {
       "Ranking of products",
       "Bilateral trade at product level (Year, Reporter, Partner and Product Code)",
       "Bilateral trade at group level (Year, Reporter, Partner and Product Group)",
-      "Bilateral trade at group level (Year, Reporter, Partner and Product Community)",
-      "Reporter trade at aggregated level (Year, Reporter and Partner)",
-      "Reporter trade at aggregated level (Year, Reporter and Product Code)",
-      "Reporter trade at aggregated level (Year and Reporter)",
-      "Product trade at aggregated level (Year and Product Code)"
+      "Bilateral trade at community level (Year, Reporter, Partner and Product Community)",
+      "Bilateral trade at aggregated level (Year, Reporter and Partner)",
+      "Multilateral trade at product level (Year, Reporter and Product Code)",
+      "Multilateral trade at group level (Year, Reporter and Product Group)",
+      "Multilateral trade at community level (Year, Reporter and Product Community)",
+      "Multilateral trade at aggregated level (Year and Reporter)",
+      "Multilateral trade at aggregated level (Year and Reporter, Abridged)",
+      "Product trade at detailed level (Year and Product Code)"
     ),
     source = c(
-      rep("UN Comtrade",3),
+      rep("UN Comtrade (with modifications)",3),
       "Center for International Development at Harvard University (with modifications)",
       "The Observatory of Economic Complexity (with modifications)",
-      rep("Open Trade Statistics",9)
+      rep("Open Trade Statistics",12)
     )
   )
 }
