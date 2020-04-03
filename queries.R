@@ -245,7 +245,7 @@ function(y = NULL, c = "all") {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       product_code = c,
       observation = "No data available for these filtering parameters"
@@ -341,7 +341,7 @@ function(y = NULL, r = NULL) {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       observation = "No data available for these filtering parameters"
@@ -410,7 +410,7 @@ function(y = NULL, r = NULL) {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       observation = "No data available for these filtering parameters"
@@ -618,7 +618,7 @@ function(y = NULL, r = NULL) {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       observation = "No data available for these filtering parameters"
@@ -826,7 +826,7 @@ function(y = NULL, r = NULL) {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       observation = "No data available for these filtering parameters"
@@ -970,7 +970,7 @@ function(y = NULL, r = NULL, c = "all") {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       product_code = c,
@@ -1064,7 +1064,7 @@ function(y = NULL, r = NULL, p = NULL) {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       partner_iso = p,
@@ -1111,7 +1111,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   }
   
   if (all(c(r, p , c) == "all")) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       partner_iso = p,
@@ -1197,7 +1197,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- tibble(
+    data <- data.table(
       year = y,
       reporter_iso = r,
       partner_iso = p,
@@ -1215,7 +1215,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
 #* @get /tables
 
 function() {
-  data.frame(
+  data.table(
     table = c(
       "countries",
       "products",
@@ -1265,5 +1265,5 @@ function() {
 #* @get /year_range
 
 function() {
-  data.frame(year = c(min_year(), max_year()))
+  data.table(year = c(min_year(), max_year()))
 }
