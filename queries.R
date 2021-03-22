@@ -109,7 +109,7 @@ products <- function() {
   return(d)
 }
 
-#* Echo back the result of a query on attributes_products_names table
+#* Echo back the result of a query on attributes_products table
 #* @get /products
 
 function() { products() }
@@ -538,7 +538,7 @@ function(y = NULL, r = NULL) {
     "
   				) AS rhsexp12
   				INNER JOIN (
-  					SELECT product_code, LEFT(product_code,2) as group_code FROM public.attributes_products_names
+  					SELECT product_code, LEFT(product_code,2) as group_code FROM public.attributes_products
   				) AS rhsexp22
   				ON (rhsexp12.product_code = rhsexp22.product_code)
   				GROUP BY rhsexp12.reporter_iso, rhsexp22.group_code
@@ -602,7 +602,7 @@ function(y = NULL, r = NULL) {
     "
     				) as rhsimp12
     				inner join (
-    					SELECT product_code, LEFT(product_code,2) as group_code FROM public.attributes_products_names
+    					SELECT product_code, LEFT(product_code,2) as group_code FROM public.attributes_products
     				) as rhsimp22
     				on (rhsimp12.product_code = rhsimp22.product_code)
     				GROUP BY rhsimp12.reporter_iso, rhsimp22.group_code
