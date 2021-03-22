@@ -103,7 +103,7 @@ countries_oceania <- as.vector(unlist(countries()[continent == "Oceania", .(coun
 # Products ----------------------------------------------------------------
 
 products <- function() {
-  d <- dbGetQuery(pool, glue("SELECT * FROM public.attributes_products_names"))
+  d <- dbGetQuery(pool, glue("SELECT product_code, product_fullname_english FROM public.attributes_products"))
   d2 <- fread("aliases/products.csv")
   d <- rbind(d, d2)
   return(d)
