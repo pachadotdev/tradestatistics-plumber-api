@@ -888,7 +888,7 @@ function(y = NULL) {
   )
   
   data <- as.data.table(dbGetQuery(pool, query))
-  data <- data[cci_rank_fitness_method > 0][order(cci_rank_fitness_method)]
+  data <- data[eci_rank_fitness_method > 0][order(eci_rank_fitness_method)]
   return(data)
 }
 
