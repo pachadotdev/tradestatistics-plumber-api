@@ -881,14 +881,14 @@ function(y = NULL) {
   
   query <- glue(
     "
-    SELECT year, reporter_iso, eci_fitness_method, eci_rank_fitness_method
+    SELECT year, reporter_iso, cci_fitness_method, cci_rank_fitness_method
     FROM public.hs07_yr
     WHERE year = {y}
     "
   )
   
   data <- as.data.table(dbGetQuery(pool, query))
-  data <- data[eci_rank_fitness_method > 0][order(eci_rank_fitness_method)]
+  data <- data[cci_rank_fitness_method > 0][order(cci_rank_fitness_method)]
   return(data)
 }
 
