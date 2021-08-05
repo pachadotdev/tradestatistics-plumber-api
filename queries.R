@@ -2,23 +2,44 @@
 
 # Packages ----------------------------------------------------------------
 
-library(pool)
-library(RPostgreSQL)
-library(data.table)
-library(glue)
+library(arrow)
+library(dplyr)
 
-# Read credentials from file excluded in .gitignore --------------------------------
+# Arrow datasets ----------------------------------------------------------
 
-readRenviron("/tradestatistics/plumber-api")
+d_yrpc <- open_dataset(
+  "../hs-rev1992-visualization/yrpc",
+  partitioning = c("year", "reporter_iso")
+)
 
-# DB connection parameters ------------------------------------------------
+d_yrp <- open_dataset(
+  "../hs-rev1992-visualization/yrp",
+  partitioning = c("year", "reporter_iso")
+)
 
-pool <- dbPool(
-  drv = dbDriver("PostgreSQL"),
-  dbname = Sys.getenv("dbname"),
-  host = Sys.getenv("dbhost"),
-  user = Sys.getenv("dbusr"),
-  password = Sys.getenv("dbpwd")
+d_yrc <- open_dataset(
+  "../hs-rev1992-visualization/yrc",
+  partitioning = c("year", "reporter_iso")
+)
+
+d_yr_communities <- open_dataset(
+  "../hs-rev1992-visualization/yr-communities",
+  partitioning = c("year", "reporter_iso")
+)
+
+d_yr_groups <- open_dataset(
+  "../hs-rev1992-visualization/yr-groups",
+  partitioning = c("year", "reporter_iso")
+)
+
+d_yr <- open_dataset(
+  "../hs-rev1992-visualization/yr",
+  partitioning = c("year", "reporter_iso")
+)
+
+d_yc <- open_dataset(
+  "../hs-rev1992-visualization/yc",
+  partitioning = c("year")
 )
 
 # Clean inputs ------------------------------------------------------------
@@ -39,18 +60,126 @@ clean_num_input <- function(x, i, j) {
   return(y)
 }
 
-# Available years in the DB -----------------------------------------------
+# Checks ------------------------------------------------------------------
 
-min_year <- function() {
-  return(
-    as.numeric(dbGetQuery(pool, glue("SELECT MIN(year) FROM public.hs07_yr")))
+check_year <- function(y) {
+  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
+    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
+  } else {
+    return(paste0("year=", y))
+  }
+}
+
+check_reporter <- function(r) {
+  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
+    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+  } else {
+    return(paste0("reporter_iso=", r))
+  }
+}
+
+check_partner <- function(p) {
+  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
+    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
+  } else {
+    return(p)
+  }
+}
+
+check_commodity <- function(c) {
+  if (!nchar(c) <= 4 | !c %in% products()$commodity_code) {
+    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
+  } else {
+    return(c)
+  }
+}
+
+# Format functions --------------------------------------------------------
+
+remove_hive <- function(x) {
+  gsub(".*=", "", x)
+}
+
+# Helpers -----------------------------------------------------------------
+
+multiple_reporters <- function(r) {
+  r2 <- switch(
+    r,
+    "reporter_iso=c-af" = countries_africa,
+    "reporter_iso=c-am" = countries_americas,
+    "reporter_iso=c-as" = countries_asia,
+    "reporter_iso=c-eu" = countries_europe,
+    "reporter_iso=c-oc" = countries_oceania
+  )
+  
+  return(paste0("reporter_iso=", r2))
+}
+
+multiple_partners <- function(p) {
+  switch(
+    p,
+    "c-af" = countries_africa,
+    "c-am" = countries_americas,
+    "c-as" = countries_asia,
+    "c-eu" = countries_europe,
+    "c-oc" = countries_oceania
   )
 }
 
+no_data <- function(table) {
+  if (table == "yrpc") {
+    tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      partner_iso = p,
+      product_code = c,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  if (table == "yrp") {
+    tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      partner_iso = p,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  if (table == "yrc") {
+    tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      product_code = c,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  if (table == "yr") {
+    tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  if (table == "yc") {
+    tibble(
+      year = remove_hive(y),
+      product_code = c,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+}
+
+# Available years in the DB -----------------------------------------------
+
+min_year <- function() {
+  return(1962)
+}
+
 max_year <- function() {
-  return(
-    as.numeric(dbGetQuery(pool, glue("SELECT MAX(year) FROM public.hs07_yr")))
-  )
+  return(2020)
 }
 
 # Title and description ---------------------------------------------------
@@ -70,134 +199,130 @@ function() {
 # Countries ---------------------------------------------------------------
 
 countries <- function() {
-  d <- dbGetQuery(pool, glue("SELECT * FROM public.attributes_countries"))
-  d2 <- fread("aliases/countries.csv")
-  d <- rbind(d, d2, fill = TRUE)
+  d <- read_parquet("../hs-rev1992-visualization/attributes/countries.parquet")
+  d2 <- read_parquet("aliases/countries.parquet")
+  d <- bind_rows(d, d2)
   return(d)
 }
 
-#* Echo back the result of a query on attributes_countries table
+#* Echo back the result of a query on countries table
 #* @get /countries
 
 function() { countries() }
+
+# Reporters ---------------------------------------------------------------
+
+#* Echo back the result of a query on yr table
+#* @param y Year
+#* @get /reporters
+
+function(y = NULL) {
+  y <- as.integer(y)
+  
+  y <- check_year(y)
+  
+  data <- d_yr %>% 
+    filter(year == y) %>% 
+    select(reporter_iso) %>% 
+    collect() %>% 
+    mutate(reporter_iso = remove_hive(reporter_iso)) %>% 
+    arrange(reporter_iso)
+  
+  return(data)
+}
+
+# Partners ----------------------------------------------------------------
+
+#* Echo back the result of a query on yrp table
+#* @param y Year
+#* @get /partners
+
+function(y = NULL) {
+  y <- as.integer(y)
+  
+  y <- check_year(y)
+  
+  data <- d_yrp %>% 
+    filter(year == y) %>% 
+    select(partner_iso) %>% 
+    collect() %>% 
+    distinct() %>% 
+    arrange(partner_iso)
+  
+  return(data)
+}
 
 # Continents (to filter API parameters) -----------------------------------
 
 # create vectors by continent to filter by using meta variables like americas, africa, etc
 
 ## Africa
-countries_africa <- as.vector(unlist(countries()[continent == "Africa", .(country_iso)]))
+countries_africa <- countries() %>% 
+  filter(continent == "Africa") %>% 
+  select(country_iso) %>% 
+  pull()
 
 ## Americas
-countries_americas <- as.vector(unlist(countries()[continent == "Americas", .(country_iso)]))
+countries_americas <- countries() %>% 
+  filter(continent == "Americas") %>% 
+  select(country_iso) %>% 
+  pull()
 
 ## Asia
-countries_asia <- as.vector(unlist(countries()[continent == "Asia", .(country_iso)]))
+countries_asia <- countries() %>% 
+  filter(continent == "Asia") %>% 
+  select(country_iso) %>% 
+  pull()
 
 ## Europe
-countries_europe <- as.vector(unlist(countries()[continent == "Europe", .(country_iso)]))
+countries_europe <- countries() %>% 
+  filter(continent == "Europe") %>% 
+  select(country_iso) %>% 
+  pull()
 
 ## Oceania
-countries_oceania <- as.vector(unlist(countries()[continent == "Oceania", .(country_iso)]))
+countries_oceania <- countries() %>% 
+  filter(continent == "Oceania") %>% 
+  select(country_iso) %>% 
+  pull()
 
 # Products ----------------------------------------------------------------
 
+d_products <- read_parquet("../hs-rev1992-visualization/attributes/products.parquet")
+d2_products <- read_parquet("aliases/products.parquet")
+d_products <- bind_rows(d_products, d2_products)
+
 products <- function() {
-  d <- dbGetQuery(pool, glue("SELECT product_code, product_fullname_english FROM public.attributes_products"))
-  d2 <- fread("aliases/products.csv")
-  d <- rbind(d, d2)
-  return(d)
+  return(d_products)
 }
 
-#* Echo back the result of a query on attributes_products table
+d_products_shortnames <- read_parquet("../hs-rev1992-visualization/attributes/products_shortnames.parquet") %>% 
+  select(-commodity_fullname_english)
+
+products_shortnames <- function() {
+  return(d_products_shortnames)
+}
+
+#* Echo back the result of a query on products table
 #* @get /products
 
 function() { products() }
 
-# Sections -------------------------------------------------------------
-
-sections <- function() {
-  return(
-    dbGetQuery(pool, glue("SELECT * FROM public.attributes_sections"))
-  )
-}
-
-sections_names <- function() {
-  return(
-    dbGetQuery(pool, glue("SELECT * FROM public.attributes_sections_names"))
-  )
-}
-
-sections_shortnames <- function() {
-  return(
-    dbGetQuery(pool, glue("SELECT * FROM public.attributes_sections_shortnames"))
-  )
-}
-
-sections_colors <- function() {
-  return(
-    dbGetQuery(pool, glue("SELECT * FROM public.attributes_sections_colors"))
-  )
-}
-
-#* Echo back the result of a query on attributes_sections table
-#* @get /sections
-
-function() { sections() }
-
-#* Echo back the result of a query on attributes_sections table
-#* @get /sections_names
-
-function() { sections_names() }
-
-#* Echo back the result of a query on attributes_sections table
-#* @get /sections_shortnames
-
-function() { sections_shortnames() }
-
-#* Echo back the result of a query on attributes_sections table
-#* @get /sections_colors
-
-function() { sections_colors() }
-
-# Groups -------------------------------------------------------------
-
-groups <- function() {
-  return(
-    dbGetQuery(pool, glue("SELECT * FROM public.attributes_groups"))
-  )
-}
-
-#* Echo back the result of a query on attributes_groups table
-#* @get /groups
-
-function() { groups() }
-
-# Product shortnames ------------------------------------------------------
-
-products_shortnames <- function() {
-  return(
-    dbGetQuery(pool, glue("SELECT * FROM public.attributes_products_shortnames"))
-  )
-}
-
-#* Echo back the result of a query on attributes_products_shortnames table
+#* Echo back the result of a query on products_shortnames table
 #* @get /products_shortnames
 
 function() { products_shortnames() }
 
-# sections shortnames -----------------------------------------------------
+d_communities <- read_parquet("../hs-rev1992-visualization/attributes/communities.parquet")
 
-sections_shortnames <- function() {
-  return(
-    dbGetQuery(pool, glue("SELECT * FROM public.attributes_sections_shortnames"))
-  )
+products_communities <- function() {
+  return(d_communities)  
 }
 
-#* Echo back the result of a query on attributes_sections_shortnames table
-#* @get /sections_shortnames
+#* Echo back the result of a query on communities table
+#* @get /products_communities
 
-function() { sections_shortnames() }
+function() { products_communities() }
 
 # YC ----------------------------------------------------------------------
 
@@ -210,77 +335,31 @@ function(y = NULL, c = "all") {
   y <- as.integer(y)
   c <- clean_num_input(c, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
+  y <- check_year(y)
+  c <- check_commodity(c)
   
-  if (!nchar(c) <= 4 | !c %in% products()$product_code) {
-    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue(
-    "
-    SELECT *
-    FROM public.hs07_yc
-    WHERE year = {y}
-    "
-  )
-  
+  query <- d_yc %>% 
+    filter(year == y)
+    
   if (c != "all" & nchar(c) != 2) {
-    query <- glue(
-      query,
-      " AND product_code = '{c}'",
-    )
+    query <- query %>% 
+      filter(commodity_code == c)
   }
   
   if (c != "all" & nchar(c) == 2) {
-    query <- glue(
-      query,
-      " AND LEFT(product_code, 2) = '{c}'"
-    )
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
   }
   
-  data <- dbGetQuery(pool, query)
+  data <- query %>% 
+    collect() %>% 
+    mutate(year = remove_hive(year)) %>% 
+    select(year, everything())
   
   if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      product_code = c,
-      observation = "No data available for these filtering parameters"
-    )
+    data <- no_data("yc")
   }
   
-  return(data)
-}
-
-# Product rankings --------------------------------------------------------
-
-#* Echo back the result of a query on yr table
-#* @param y Year
-#* @get /product_rankings
-
-function(y = NULL) {
-  y <- as.integer(y)
-  
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value.")
-    stop()
-  }
-  
-  stopifnot(is.integer(y))
-  
-  query <- glue(
-    "
-    SELECT year, product_code, pci_fitness_method, pci_rank_fitness_method
-    FROM public.hs07_yc
-    WHERE year = {y}
-    "
-  )
-  
-  data <- as.data.table(dbGetQuery(pool, query))
-  data <- data[pci_rank_fitness_method > 0][order(pci_rank_fitness_method)]
   return(data)
 }
 
@@ -295,600 +374,127 @@ function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
+  y <- check_year(y)
+  r <- check_reporter(r)
+  
+  query <- d_yr %>% 
+    filter(year == y)
+
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue(
-    "
-    SELECT * 
-    FROM public.hs07_yr 
-    WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
     
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
   }
   
-  data <- dbGetQuery(pool, query)
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = remove_hive(year),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
+    
   
   if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
-      observation = "No data available for these filtering parameters"
-    )
+    data <- no_data("yr")
   }
   
   return(data)
 }
 
-# YR short ----------------------------------------------------------------
+# YR-Communities ----------------------------------------------------------
 
-#* Echo back the result of a query on yr table
+#* Echo back the result of a query on yrc-communities table
 #* @param y Year
 #* @param r Reporter ISO
-#* @get /yr-short
+#* @get /yr-communities
 
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
+  y <- check_year(y)
+  r <- check_reporter(r)
+  
+  query <- d_yr_communities %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue(
-    "
-    SELECT year, reporter_iso, export_value_usd, import_value_usd,
-      top_export_product_code, top_export_trade_value_usd,
-      top_import_product_code, top_import_trade_value_usd
-    FROM public.hs07_yr 
-    WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
     
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
   }
   
-  data <- dbGetQuery(pool, query)
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = remove_hive(year),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
+  
   
   if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
-      observation = "No data available for these filtering parameters"
-    )
+    data <- no_data("yr")
   }
   
   return(data)
 }
 
-# YR-GA ----------------------------------------------------------------------
+# YR-Groups ---------------------------------------------------------------
 
-#* Echo back the result of a query on yrc table
+#* Echo back the result of a query on yr-groups table
 #* @param y Year
 #* @param r Reporter ISO
-#* @get /yr-ga
+#* @get /yr-groups
 
 function(y = NULL, r = NULL) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
+  y <- check_year(y)
+  r <- check_reporter(r)
+  
+  query <- d_yr_groups %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue(
-    "
-    SELECT year, reporter_iso, export_value_usd, import_value_usd,
-	   top_export_group_code, top_export_trade_value_usd,
-	   top_import_group_code, top_import_trade_value_usd
-    FROM(
-    	SELECT lhs.year as year, 
-    	       lhs.reporter_iso as reporter_iso, 
-    	       lhs.export_value_usd as export_value_usd,
-    	       lhs.import_value_usd as import_value_usd,
-    	       rhsexp.top_export_group_code as top_export_group_code,
-    	       rhsexp.top_export_trade_value_usd as top_export_trade_value_usd,
-    	       rhsimp.top_import_group_code as top_import_group_code,
-    		   rhsimp.top_import_trade_value_usd as top_import_trade_value_usd
-    	FROM (
-    		SELECT year, reporter_iso, export_value_usd, import_value_usd
-    		FROM public.hs07_yr
-        WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
     
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
   }
   
-  query <- glue(
-    query,
-    "
-    ) AS lhs
-    LEFT JOIN (
-		SELECT reporter_iso,
-			   group_code AS top_export_group_code,
-			   export_value_usd AS top_export_trade_value_usd
-		FROM (
-			SELECT reporter_iso, group_code, export_value_usd, MAX(export_value_usd) OVER () AS mev
-			FROM (
-				SELECT rhsexp12.reporter_iso AS reporter_iso,
-					     rhsexp22.group_code AS group_code,
-					     SUM(export_value_usd) AS export_value_usd
-				FROM (
-					SELECT reporter_iso, product_code, export_value_usd
-					FROM public.hs07_yrc
-					WHERE year = {y}
-    "
-  )
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = remove_hive(year),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
   
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
-  }
-  
-  query <- glue(
-    query,
-    "
-  				) AS rhsexp12
-  				INNER JOIN (
-  					SELECT product_code, LEFT(product_code,2) as group_code FROM public.attributes_products
-  				) AS rhsexp22
-  				ON (rhsexp12.product_code = rhsexp22.product_code)
-  				GROUP BY rhsexp12.reporter_iso, rhsexp22.group_code
-  			) rhsexpnf
-  		) AS rhsexpf
-  		WHERE export_value_usd = mev
-  	) AS rhsexp
-  	ON (lhs.reporter_iso = rhsexp.reporter_iso)
-    "
-  )
-  
-  query <- glue(
-    query,
-    "
-    LEFT JOIN (
-		SELECT reporter_iso,
-			   group_code AS top_import_group_code,
-			   import_value_usd AS top_import_trade_value_usd
-		FROM (
-			SELECT reporter_iso, group_code, import_value_usd, MAX(import_value_usd) OVER () AS miv
-			FROM (
-				SELECT rhsimp12.reporter_iso AS reporter_iso,
-					   rhsimp22.group_code AS group_code,
-					   SUM(import_value_usd) AS import_value_usd
-				FROM (
-					SELECT reporter_iso,
-						   product_code,
-						   import_value_usd
-					FROM public.hs07_yrc
-					WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
-  }
-  
-  query <- glue(
-    query,
-    "
-    				) as rhsimp12
-    				inner join (
-    					SELECT product_code, LEFT(product_code,2) as group_code FROM public.attributes_products
-    				) as rhsimp22
-    				on (rhsimp12.product_code = rhsimp22.product_code)
-    				GROUP BY rhsimp12.reporter_iso, rhsimp22.group_code
-    			) rhsimpnf
-    		) AS rhsimpf
-    		WHERE import_value_usd = miv
-    	) as rhsimp
-    	ON (lhs.reporter_iso = rhsimp.reporter_iso)
-    ) AS res
-    "
-  )
-  
-  data <- dbGetQuery(pool, query)
   
   if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
-      observation = "No data available for these filtering parameters"
-    )
+    data <- no_data("yr")
   }
   
-  return(data)
-}
-
-# YR-SA ----------------------------------------------------------------------
-
-#* Echo back the result of a query on yrc table
-#* @param y Year
-#* @param r Reporter ISO
-#* @get /yr-sa
-
-function(y = NULL, r = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue(
-    "
-    SELECT year, reporter_iso, export_value_usd, import_value_usd,
-	   top_export_section_code, top_export_trade_value_usd,
-	   top_import_section_code, top_import_trade_value_usd
-    FROM(
-    	SELECT lhs.year as year, 
-    	       lhs.reporter_iso as reporter_iso, 
-    	       lhs.export_value_usd as export_value_usd,
-    	       lhs.import_value_usd as import_value_usd,
-    	       rhsexp.top_export_section_code as top_export_section_code,
-    	       rhsexp.top_export_trade_value_usd as top_export_trade_value_usd,
-    	       rhsimp.top_import_section_code as top_import_section_code,
-    		   rhsimp.top_import_trade_value_usd as top_import_trade_value_usd
-    	FROM (
-    		SELECT year, reporter_iso, export_value_usd, import_value_usd
-    		FROM public.hs07_yr
-        WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
-  }
-  
-  query <- glue(
-    query,
-    "
-    ) AS lhs
-    LEFT JOIN (
-		SELECT reporter_iso,
-			   section_code AS top_export_section_code,
-			   export_value_usd AS top_export_trade_value_usd
-		FROM (
-			SELECT reporter_iso, section_code, export_value_usd, MAX(export_value_usd) OVER () AS mev
-			FROM (
-				SELECT rhsexp12.reporter_iso AS reporter_iso,
-					     rhsexp22.section_code AS section_code,
-					     SUM(export_value_usd) AS export_value_usd
-				FROM (
-					SELECT reporter_iso, product_code, export_value_usd
-					FROM public.hs07_yrc
-					WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
-  }
-  
-  query <- glue(
-    query,
-    "
-  				) AS rhsexp12
-  				INNER JOIN (
-  					SELECT product_code, section_code FROM public.attributes_sections
-  				) AS rhsexp22
-  				ON (rhsexp12.product_code = rhsexp22.product_code)
-  				GROUP BY rhsexp12.reporter_iso, rhsexp22.section_code
-  			) rhsexpnf
-  		) AS rhsexpf
-  		WHERE export_value_usd = mev
-  	) AS rhsexp
-  	ON (lhs.reporter_iso = rhsexp.reporter_iso)
-    "
-  )
-  
-  query <- glue(
-    query,
-    "
-    LEFT JOIN (
-		SELECT reporter_iso,
-			   section_code AS top_import_section_code,
-			   import_value_usd AS top_import_trade_value_usd
-		FROM (
-			SELECT reporter_iso, section_code, import_value_usd, MAX(import_value_usd) OVER () AS miv
-			FROM (
-				SELECT rhsimp12.reporter_iso AS reporter_iso,
-					   rhsimp22.section_code AS section_code,
-					   SUM(import_value_usd) AS import_value_usd
-				FROM (
-					SELECT reporter_iso,
-						   product_code,
-						   import_value_usd
-					FROM public.hs07_yrc
-					WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
-    
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
-  }
-  
-  query <- glue(
-    query,
-    "
-    				) as rhsimp12
-    				inner join (
-    					SELECT product_code, section_code FROM public.attributes_sections
-    				) as rhsimp22
-    				on (rhsimp12.product_code = rhsimp22.product_code)
-    				GROUP BY rhsimp12.reporter_iso, rhsimp22.section_code
-    			) rhsimpnf
-    		) AS rhsimpf
-    		WHERE import_value_usd = miv
-    	) as rhsimp
-    	ON (lhs.reporter_iso = rhsimp.reporter_iso)
-    ) AS res
-    "
-  )
-  
-  data <- dbGetQuery(pool, query)
-  
-  if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
-      observation = "No data available for these filtering parameters"
-    )
-  }
-  
-  return(data)
-}
-
-# Reporters ---------------------------------------------------------------
-
-#* Echo back the result of a query on yr table
-#* @param y Year
-#* @get /reporters
-
-function(y = NULL) {
-  y <- as.integer(y)
-  
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value.")
-    stop()
-  }
-  
-  query <- glue(
-    "
-    SELECT reporter_iso
-    FROM public.hs07_yr
-    WHERE year = {y}
-    "
-  )
-  
-  data <- dbGetQuery(pool, query)
-  
-  return(data)
-}
-
-# Country rankings --------------------------------------------------------
-
-#* Echo back the result of a query on yr table
-#* @param y Year
-#* @get /country_rankings
-
-function(y = NULL) {
-  y <- as.integer(y)
-  
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value.")
-    stop()
-  }
-  
-  stopifnot(is.integer(y))
-  
-  query <- glue(
-    "
-    SELECT year, reporter_iso, cci_fitness_method, cci_rank_fitness_method
-    FROM public.hs07_yr
-    WHERE year = {y}
-    "
-  )
-  
-  data <- as.data.table(dbGetQuery(pool, query))
-  data <- data[cci_rank_fitness_method > 0][order(cci_rank_fitness_method)]
   return(data)
 }
 
@@ -905,77 +511,56 @@ function(y = NULL, r = NULL, c = "all") {
   r <- clean_char_input(r, 1, 4)
   c <- clean_num_input(c, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
+  y <- check_year(y)
+  r <- check_reporter(r)
+  c <- check_commodity(c)
   
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(c) <= 4 | !c %in% products()$product_code) {
-    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue(
-    "
-    SELECT *
-    FROM public.hs07_yrc
-    WHERE year = {y}
-    "
-  )
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
+  if (all(c(remove_hive(r) , c) == "all")) {
+    data <- tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      product_code = c,
+      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
     )
     
-    r2 <- sprintf("'%s'", r2$country_iso)
+    return(data)
+  }
+  
+  query <- d_yrc %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
+  }
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
     
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
   }
   
   if (c != "all" & nchar(c) != 2) {
-    query <- glue(
-      query,
-      " AND product_code = '{c}'"
-    )
+    query <- query %>% 
+      filter(commodity_code == c)
   }
   
   if (c != "all" & nchar(c) == 2) {
-    query <- glue(
-      query,
-      " AND LEFT(product_code, 2) = '{c}'"
-    )
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
   }
   
-  data <- dbGetQuery(pool, query)
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = remove_hive(year),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
-      product_code = c,
-      observation = "No data available for these filtering parameters"
-    )
+    data <- no_data("yrc")
   }
   
   return(data)
@@ -994,82 +579,58 @@ function(y = NULL, r = NULL, p = NULL) {
   r <- clean_char_input(r, 1, 4)
   p <- clean_char_input(p, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
+  y <- check_year(y)
+  r <- check_reporter(r)
+  p <- check_partner(p)
+  
+  # if (all(c(remove_hive(r) , p, c) == "all")) {
+  #   data <- tibble(
+  #     year = remove_hive(y),
+  #     reporter_iso = remove_hive(r),
+  #     partner_iso = p,
+  #     observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+  #   )
+  #   
+  #   return(data)
+  # }
+  
+  query <- d_yrp %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
   }
   
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
-    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  query <- glue("SELECT * FROM public.hs07_yrp WHERE year = {y}")
-  
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
-  }
-  
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
     
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
   }
   
   if (p != "all" & nchar(p) == 3) {
-    query <- glue(
-      query,
-      " AND partner_iso = '{p}'"
-    )
+    query <- query %>% 
+      filter(partner_iso == p)
   }
   
   if (p != "all" & nchar(p) == 4) {
-    p2 <- switch(
-      p,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
+    p2 <- multiple_partners(p)
     
-    p2 <- sprintf("'%s'", p2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(p2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(partner_iso %in% p2)
   }
   
-  data <- dbGetQuery(pool, query)
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = remove_hive(year),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
-      partner_iso = p,
-      observation = "No data available for these filtering parameters"
-    )
+    data <- no_data("yrp")
   }
   
   return(data)
@@ -1090,30 +651,15 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   p <- clean_char_input(p, 1, 4)
   c <- clean_num_input(c, 1, 4)
   
-  if (nchar(y) != 4 | !y >= min_year() | !y <= max_year()) {
-    return("The specified year is not a valid integer value. Read the documentation: tradestatistics.io")
-    stop()
-  }
+  y <- check_year(y)
+  r <- check_reporter(r)
+  p <- check_partner(p)
+  c <- check_commodity(c)
   
-  if (!nchar(r) <= 4 | !r %in% c(countries()$country_iso)) {
-    return("The specified reporter is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(p) <= 4 | !p %in% c(countries()$country_iso)) {
-    return("The specified partner is not a valid ISO code or alias. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (!nchar(c) <= 4 | !c %in% products()$product_code) {
-    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
-    stop()
-  }
-  
-  if (all(c(r, p , c) == "all")) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
+  if (all(c(remove_hive(r), p , c) == "all")) {
+    data <- tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
       partner_iso = p,
       product_code = c,
       observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
@@ -1122,91 +668,65 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
     return(data)
   }
   
-  query <- glue(
-    "
-    SELECT *
-    FROM public.hs07_yrpc
-    WHERE year = {y}
-    "
-  )
+  query <- d_yrpc %>% 
+    filter(year == y)
   
-  if (r != "all" & nchar(r) == 3) {
-    query <- glue(
-      query,
-      " AND reporter_iso = '{r}'"
-    )
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
   }
   
-  if (r != "all" & nchar(r) == 4) {
-    r2 <- switch(
-      r,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
     
-    r2 <- sprintf("'%s'", r2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(r2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
   }
   
   if (p != "all" & nchar(p) == 3) {
-    query <- glue(
-      query,
-      " AND partner_iso = '{p}'"
-    )
+    query <- query %>% 
+      filter(partner_iso == p)
   }
   
   if (p != "all" & nchar(p) == 4) {
-    p2 <- switch(
-      p,
-      "c-af" = countries_africa,
-      "c-am" = countries_americas,
-      "c-as" = countries_asia,
-      "c-eu" = countries_europe,
-      "c-oc" = countries_oceania
-    )
+    p2 <- multiple_partners(p)
     
-    p2 <- sprintf("'%s'", p2$country_iso)
-    
-    query <- glue(
-      query,
-      " AND reporter_iso IN ({glue_collapse(p2,  sep = ', ')})"
-    )
+    query <- query %>% 
+      filter(partner_iso %in% p2)
   }
   
   if (c != "all" & nchar(c) != 2) {
-    query <- glue(
-      query,
-      " AND product_code = '{c}'"
-    )
+    query <- query %>% 
+      filter(commodity_code == c)
   }
   
   if (c != "all" & nchar(c) == 2) {
-    query <- glue(
-      query,
-      " AND LEFT(product_code, 2) = '{c}'"
-    )
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
   }
   
-  data <- dbGetQuery(pool, query)
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = remove_hive(year),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- data.table(
-      year = y,
-      reporter_iso = r,
-      partner_iso = p,
-      product_code = c,
-      observation = "No data available for these filtering parameters"
-    )
+    data <- no_data("yrpc")
   }
   
   return(data)
+}
+
+# Year range --------------------------------------------------------------
+
+#* Minimum and maximum years with available data
+#* @get /year_range
+
+function() {
+  tibble(year = c(min_year(), max_year()))
 }
 
 # Available tables --------------------------------------------------------
@@ -1215,55 +735,43 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
 #* @get /tables
 
 function() {
-  data.table(
+  tibble(
     table = c(
       "countries",
-      "products",
       "reporters",
-      "sections",
-      "product_shortnames",
-      "country_rankings",
-      "product_rankings",
+      "partners",
+      "products",
+      "products_shortnames",
+      "products_communities",
       "yrpc",
       "yrp",
       "yrc",
       "yr",
-      "yr-short",
-      "yr-ga",
-      "yr-sa",
-      "yc"
+      "yr-communities",
+      "yr-groups",
+      "yc",
+      "years"
     ),
     description = c(
       "Countries metadata",
-      "Product metadata",
-      "Reporting countries",
-      "Product sections",
-      "Product short names",
-      "Ranking of countries",
-      "Ranking of products",
+      "Reporters for a given year",
+      "Partners for a given year",
+      "Products metadata",
+      "Products short names",
+      "Products communities",
       "Reporter-Partner trade at product level (Year, Reporter, Partner and Product Code)",
       "Reporter-Partner trade at aggregated level (Year, Reporter and Partner)",
       "Reporter trade at product level (Year, Reporter and Product Code)",
-      "Reporter trade at aggregated level (Year and Reporter, with top exported/imported Product)",
-      "Reporter trade at aggregated level (Year and Reporter, Abridged)",
-      "Reporter trade at aggregated level (Year and Reporter, with top exported/imported Group)",
-      "Reporter trade at aggregated level (Year and Reporter, with top exported/imported Section)",
-      "Product trade at detailed level (Year and Product Code)"
+      "Reporter trade at aggregated level (Year and Reporter)",
+      "Reporter trade at product community level (Year, Reporter and Product Community) (22 communities)",
+      "Reporter trade at product group level (Year, Reporter and Product Group) (99 groups)",
+      "Product trade at detailed level (Year and Product Code)",
+      "Minimum and maximum years with available data"
     ),
     source = c(
       rep("UN Comtrade (with modifications)",3),
-      "Center for International Development at Harvard University (with modifications)",
-      "The Observatory of Economic Complexity (with modifications)",
-      rep("Open Trade Statistics",10)
+      rep("Center for International Development at Harvard University (with modifications)", 2),
+      rep("Open Trade Statistics",9)
     )
   )
-}
-
-# Year range --------------------------------------------------------------
-
-#* All the tables generated by this API
-#* @get /year_range
-
-function() {
-  data.table(year = c(min_year(), max_year()))
 }
