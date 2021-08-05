@@ -193,7 +193,7 @@ max_year <- function() {
 #* @get /
 
 function() {
-  paste("Hello World! Welcome to Open Trade Statistics API")
+  paste("Hello World! Welcome to Open Trade Statistics API. Go to https://api.tradestatistics.io/__docs__/ or use the R client!")
 }
 
 # Countries ---------------------------------------------------------------
