@@ -362,7 +362,7 @@ function(y = NULL, c = "all") {
     select(year, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yc")
+    data <- no_data("yc", y, c)
   }
   
   return(data)
@@ -407,7 +407,7 @@ function(y = NULL, r = NULL) {
     
   
   if (nrow(data) == 0) {
-    data <- no_data("yr")
+    data <- no_data("yr", y, r)
   }
   
   return(data)
@@ -452,7 +452,7 @@ function(y = NULL, r = NULL) {
   
   
   if (nrow(data) == 0) {
-    data <- no_data("yr")
+    data <- no_data("yr", y, r)
   }
   
   return(data)
@@ -497,7 +497,7 @@ function(y = NULL, r = NULL) {
   
   
   if (nrow(data) == 0) {
-    data <- no_data("yr")
+    data <- no_data("yr", y, r)
   }
   
   return(data)
@@ -565,7 +565,7 @@ function(y = NULL, r = NULL, c = "all") {
     select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yrc")
+    data <- no_data("yrc", y, r, c)
   }
   
   return(data)
@@ -635,7 +635,7 @@ function(y = NULL, r = NULL, p = NULL) {
     select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yrp")
+    data <- no_data("yrp", y, r, p)
   }
   
   return(data)
