@@ -42,6 +42,71 @@ d_yc <- open_dataset(
   partitioning = c("year")
 )
 
+# Static data -------------------------------------------------------------
+
+d_countries <- bind_rows(
+  read_parquet("../hs-rev1992-visualization/attributes/countries.parquet"),
+  read_parquet("aliases/countries.parquet")
+)
+
+d_commodities <- bind_rows(
+  read_parquet("../hs-rev1992-visualization/attributes/commodities.parquet"),
+  read_parquet("aliases/commodities.parquet")
+)
+
+d_commodities_shortnames <- read_parquet("../hs-rev1992-visualization/attributes/commodities_shortnames.parquet") %>% 
+  select(-commodity_fullname_english)
+
+d_communities <- read_parquet("../hs-rev1992-visualization/attributes/communities.parquet")
+
+countries <- function() {
+  return(d_countries)
+}
+
+commodities <- function() {
+  return(d_commodities)
+}
+
+commodities_shortnames <- function() {
+  return(d_commodities_shortnames)
+}
+
+commodities_communities <- function() {
+  return(d_communities)  
+}
+
+# create vectors by continent to filter by using meta variables like americas, africa, etc
+
+## Africa
+countries_africa <- countries() %>% 
+  filter(continent == "Africa") %>% 
+  select(country_iso) %>% 
+  pull()
+
+## Americas
+countries_americas <- countries() %>% 
+  filter(continent == "Americas") %>% 
+  select(country_iso) %>% 
+  pull()
+
+## Asia
+countries_asia <- countries() %>% 
+  filter(continent == "Asia") %>% 
+  select(country_iso) %>% 
+  pull()
+
+## Europe
+countries_europe <- countries() %>% 
+  filter(continent == "Europe") %>% 
+  select(country_iso) %>% 
+  pull()
+
+## Oceania
+countries_oceania <- countries() %>% 
+  filter(continent == "Oceania") %>% 
+  select(country_iso) %>% 
+  pull()
+
 # Clean inputs ------------------------------------------------------------
 
 clean_char_input <- function(x, i, j) {
@@ -126,9 +191,9 @@ multiple_partners <- function(p) {
   )
 }
 
-no_data <- function(table) {
+no_data <- function(table, y = NULL, r = NULL, p = NULL, c = NULL) {
   if (table == "yrpc") {
-    tibble(
+    d <- tibble(
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
       partner_iso = p,
@@ -138,7 +203,7 @@ no_data <- function(table) {
   }
   
   if (table == "yrp") {
-    tibble(
+    d <- tibble(
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
       partner_iso = p,
@@ -147,7 +212,7 @@ no_data <- function(table) {
   }
   
   if (table == "yrc") {
-    tibble(
+    d <- tibble(
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
       commodity_code = c,
@@ -156,7 +221,7 @@ no_data <- function(table) {
   }
   
   if (table == "yr") {
-    tibble(
+    d <- tibble(
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
       observation = "No data available for these filtering parameters"
@@ -164,12 +229,14 @@ no_data <- function(table) {
   }
   
   if (table == "yc") {
-    tibble(
+    d <- tibble(
       year = remove_hive(y),
       commodity_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
+  
+  return(d)
 }
 
 # Available years in the DB -----------------------------------------------
@@ -185,7 +252,7 @@ max_year <- function() {
 # Title and description ---------------------------------------------------
 
 #* @apiTitle Open Trade Statistics API
-#* @apiDescription Sandbox to experiment with the available functions
+#* @apiDescription International trade data available with different levels of aggregation
 
 # Hello World -------------------------------------------------------------
 
@@ -197,13 +264,6 @@ function() {
 }
 
 # Countries ---------------------------------------------------------------
-
-countries <- function() {
-  d <- read_parquet("../hs-rev1992-visualization/attributes/countries.parquet")
-  d2 <- read_parquet("aliases/countries.parquet")
-  d <- bind_rows(d, d2)
-  return(d)
-}
 
 #* Echo back the result of a query on countries table
 #* @get /countries
@@ -252,56 +312,7 @@ function(y = NULL) {
   return(data)
 }
 
-# Continents (to filter API parameters) -----------------------------------
-
-# create vectors by continent to filter by using meta variables like americas, africa, etc
-
-## Africa
-countries_africa <- countries() %>% 
-  filter(continent == "Africa") %>% 
-  select(country_iso) %>% 
-  pull()
-
-## Americas
-countries_americas <- countries() %>% 
-  filter(continent == "Americas") %>% 
-  select(country_iso) %>% 
-  pull()
-
-## Asia
-countries_asia <- countries() %>% 
-  filter(continent == "Asia") %>% 
-  select(country_iso) %>% 
-  pull()
-
-## Europe
-countries_europe <- countries() %>% 
-  filter(continent == "Europe") %>% 
-  select(country_iso) %>% 
-  pull()
-
-## Oceania
-countries_oceania <- countries() %>% 
-  filter(continent == "Oceania") %>% 
-  select(country_iso) %>% 
-  pull()
-
 # Commodities ----------------------------------------------------------------
-
-d_commodities <- read_parquet("../hs-rev1992-visualization/attributes/commodities.parquet")
-d2_commodities <- read_parquet("aliases/commodities.parquet")
-d_commodities <- bind_rows(d_commodities, d2_commodities)
-
-commodities <- function() {
-  return(d_commodities)
-}
-
-d_commodities_shortnames <- read_parquet("../hs-rev1992-visualization/attributes/commodities_shortnames.parquet") %>% 
-  select(-commodity_fullname_english)
-
-commodities_shortnames <- function() {
-  return(d_commodities_shortnames)
-}
 
 #* Echo back the result of a query on commodities table
 #* @get /commodities
@@ -312,12 +323,6 @@ function() { commodities() }
 #* @get /commodities_shortnames
 
 function() { commodities_shortnames() }
-
-d_communities <- read_parquet("../hs-rev1992-visualization/attributes/communities.parquet")
-
-commodities_communities <- function() {
-  return(d_communities)  
-}
 
 #* Echo back the result of a query on communities table
 #* @get /commodities_communities
@@ -714,7 +719,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
     select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yrpc")
+    data <- no_data("yrpc", y, r, p, c)
   }
   
   return(data)
