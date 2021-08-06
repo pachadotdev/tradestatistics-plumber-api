@@ -87,8 +87,8 @@ check_partner <- function(p) {
 }
 
 check_commodity <- function(c) {
-  if (!nchar(c) <= 4 | !c %in% products()$commodity_code) {
-    return("The specified product code is not a valid string. Read the documentation: tradestatistics.io")
+  if (!nchar(c) <= 4 | !c %in% commodities()$commodity_code) {
+    return("The specified commodity code is not a valid string. Read the documentation: tradestatistics.io")
   } else {
     return(c)
   }
@@ -132,7 +132,7 @@ no_data <- function(table) {
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
       partner_iso = p,
-      product_code = c,
+      commodity_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -150,7 +150,7 @@ no_data <- function(table) {
     tibble(
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
-      product_code = c,
+      commodity_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -166,7 +166,7 @@ no_data <- function(table) {
   if (table == "yc") {
     tibble(
       year = remove_hive(y),
-      product_code = c,
+      commodity_code = c,
       observation = "No data available for these filtering parameters"
     )
   }
@@ -286,49 +286,49 @@ countries_oceania <- countries() %>%
   select(country_iso) %>% 
   pull()
 
-# Products ----------------------------------------------------------------
+# Commodities ----------------------------------------------------------------
 
-d_products <- read_parquet("../hs-rev1992-visualization/attributes/products.parquet")
-d2_products <- read_parquet("aliases/products.parquet")
-d_products <- bind_rows(d_products, d2_products)
+d_commodities <- read_parquet("../hs-rev1992-visualization/attributes/commodities.parquet")
+d2_commodities <- read_parquet("aliases/commodities.parquet")
+d_commodities <- bind_rows(d_commodities, d2_commodities)
 
-products <- function() {
-  return(d_products)
+commodities <- function() {
+  return(d_commodities)
 }
 
-d_products_shortnames <- read_parquet("../hs-rev1992-visualization/attributes/products_shortnames.parquet") %>% 
+d_commodities_shortnames <- read_parquet("../hs-rev1992-visualization/attributes/commodities_shortnames.parquet") %>% 
   select(-commodity_fullname_english)
 
-products_shortnames <- function() {
-  return(d_products_shortnames)
+commodities_shortnames <- function() {
+  return(d_commodities_shortnames)
 }
 
-#* Echo back the result of a query on products table
-#* @get /products
+#* Echo back the result of a query on commodities table
+#* @get /commodities
 
-function() { products() }
+function() { commodities() }
 
-#* Echo back the result of a query on products_shortnames table
-#* @get /products_shortnames
+#* Echo back the result of a query on commodities_shortnames table
+#* @get /commodities_shortnames
 
-function() { products_shortnames() }
+function() { commodities_shortnames() }
 
 d_communities <- read_parquet("../hs-rev1992-visualization/attributes/communities.parquet")
 
-products_communities <- function() {
+commodities_communities <- function() {
   return(d_communities)  
 }
 
 #* Echo back the result of a query on communities table
-#* @get /products_communities
+#* @get /commodities_communities
 
-function() { products_communities() }
+function() { commodities_communities() }
 
 # YC ----------------------------------------------------------------------
 
 #* Echo back the result of a query on yc table
 #* @param y Year
-#* @param c Product code
+#* @param c Commodity code
 #* @get /yc
 
 function(y = NULL, c = "all") {
@@ -503,7 +503,7 @@ function(y = NULL, r = NULL) {
 #* Echo back the result of a query on yrc table
 #* @param y Year
 #* @param r Reporter ISO
-#* @param c Product code
+#* @param c Commodity code
 #* @get /yrc
 
 function(y = NULL, r = NULL, c = "all") {
@@ -519,7 +519,7 @@ function(y = NULL, r = NULL, c = "all") {
     data <- tibble(
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
-      product_code = c,
+      commodity_code = c,
       observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
     )
     
@@ -642,7 +642,7 @@ function(y = NULL, r = NULL, p = NULL) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
-#* @param c Product code
+#* @param c Commodity code
 #* @get /yrpc
 
 function(y = NULL, r = NULL, p = NULL, c = "all") {
@@ -661,7 +661,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
       partner_iso = p,
-      product_code = c,
+      commodity_code = c,
       observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
     )
     
@@ -740,9 +740,9 @@ function() {
       "countries",
       "reporters",
       "partners",
-      "products",
-      "products_shortnames",
-      "products_communities",
+      "commodities",
+      "commodities_shortnames",
+      "commodities_communities",
       "yrpc",
       "yrp",
       "yrc",
@@ -756,16 +756,16 @@ function() {
       "Countries metadata",
       "Reporters for a given year",
       "Partners for a given year",
-      "Products metadata",
-      "Products short names",
-      "Products communities",
-      "Reporter-Partner trade at product level (Year, Reporter, Partner and Product Code)",
+      "Commodities metadata",
+      "Commodities short names",
+      "Commodities communities",
+      "Reporter-Partner trade at commodity level (Year, Reporter, Partner and Commodity Code)",
       "Reporter-Partner trade at aggregated level (Year, Reporter and Partner)",
-      "Reporter trade at product level (Year, Reporter and Product Code)",
+      "Reporter trade at commodity level (Year, Reporter and Commodity Code)",
       "Reporter trade at aggregated level (Year and Reporter)",
-      "Reporter trade at product community level (Year, Reporter and Product Community) (22 communities)",
-      "Reporter trade at product group level (Year, Reporter and Product Group) (99 groups)",
-      "Product trade at detailed level (Year and Product Code)",
+      "Reporter trade at commodity community level (Year, Reporter and Commodity Community) (22 communities)",
+      "Reporter trade at commodity group level (Year, Reporter and Commodity Group) (99 groups)",
+      "Commodity trade at detailed level (Year and Commodity Code)",
       "Minimum and maximum years with available data"
     ),
     source = c(
