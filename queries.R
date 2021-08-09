@@ -253,6 +253,9 @@ max_year <- function() {
 
 #* @apiTitle Open Trade Statistics API
 #* @apiDescription International trade data available with different levels of aggregation
+#* @apiVersion 2.0.0
+#* @apiContact list(name = "API Support", url = "https://github.com/tradestatistics/plumber-api/issues", email = "mavargas11@uc.cl")
+#* @apiLicense list(name = "Apache 2.0", url = "https://www.apache.org/licenses/LICENSE-2.0.html")
 
 # Hello World -------------------------------------------------------------
 
