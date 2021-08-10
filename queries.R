@@ -24,17 +24,17 @@ d_yrc <- open_dataset(
 
 d_yr_communities <- open_dataset(
   "../hs-rev1992-visualization/yr-communities",
-  partitioning = c("year", "reporter_iso")
+  partitioning = c("year")
 )
 
 d_yr_groups <- open_dataset(
   "../hs-rev1992-visualization/yr-groups",
-  partitioning = c("year", "reporter_iso")
+  partitioning = c("year")
 )
 
 d_yr <- open_dataset(
   "../hs-rev1992-visualization/yr",
-  partitioning = c("year", "reporter_iso")
+  partitioning = c("year")
 )
 
 d_yc <- open_dataset(
