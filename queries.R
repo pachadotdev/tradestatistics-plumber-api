@@ -8,56 +8,56 @@ library(dplyr)
 # Arrow datasets ----------------------------------------------------------
 
 d_yrpc <- open_dataset(
-  "../hs-rev1992-visualization/yrpc",
+  "../hs92-visualization/yrpc",
   partitioning = c("year", "reporter_iso")
 )
 
 d_yrp <- open_dataset(
-  "../hs-rev1992-visualization/yrp",
+  "../hs92-visualization/yrp",
   partitioning = c("year", "reporter_iso")
 )
 
 d_yrc <- open_dataset(
-  "../hs-rev1992-visualization/yrc",
+  "../hs92-visualization/yrc",
   partitioning = c("year", "reporter_iso")
 )
 
 d_yr_communities <- open_dataset(
-  "../hs-rev1992-visualization/yr-communities",
+  "../hs92-visualization/yr-communities",
   partitioning = c("year")
 )
 
 d_yr_groups <- open_dataset(
-  "../hs-rev1992-visualization/yr-groups",
+  "../hs92-visualization/yr-groups",
   partitioning = c("year")
 )
 
 d_yr <- open_dataset(
-  "../hs-rev1992-visualization/yr",
+  "../hs92-visualization/yr",
   partitioning = c("year")
 )
 
 d_yc <- open_dataset(
-  "../hs-rev1992-visualization/yc",
+  "../hs92-visualization/yc",
   partitioning = c("year")
 )
 
 # Static data -------------------------------------------------------------
 
 d_countries <- bind_rows(
-  read_parquet("../hs-rev1992-visualization/attributes/countries.parquet"),
+  read_parquet("../hs92-visualization/attributes/countries.parquet"),
   read_parquet("aliases/countries.parquet")
 )
 
 d_commodities <- bind_rows(
-  read_parquet("../hs-rev1992-visualization/attributes/commodities.parquet"),
+  read_parquet("../hs92-visualization/attributes/commodities.parquet"),
   read_parquet("aliases/commodities.parquet")
 )
 
-d_commodities_shortnames <- read_parquet("../hs-rev1992-visualization/attributes/commodities_shortnames.parquet") %>% 
+d_commodities_shortnames <- read_parquet("../hs92-visualization/attributes/commodities_shortnames.parquet") %>% 
   select(-commodity_fullname_english)
 
-d_communities <- read_parquet("../hs-rev1992-visualization/attributes/communities.parquet")
+d_communities <- read_parquet("../hs92-visualization/attributes/communities.parquet")
 
 countries <- function() {
   return(d_countries)
