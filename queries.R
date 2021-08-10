@@ -390,12 +390,17 @@ function(y = NULL, r = NULL) {
     filter(year == y)
 
   if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    # not using reporter partition here
+    r <- gsub("reporter_iso=", "", r)
+    
     query <- query %>% 
       filter(reporter_iso == r)
   }
   
   if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
     r2 <- multiple_reporters(r)
+    # not using reporter partition here
+    r2 <- gsub("reporter_iso=", "", r2)
     
     query <- query %>% 
       filter(reporter_iso %in% r2)
@@ -435,12 +440,17 @@ function(y = NULL, r = NULL) {
     filter(year == y)
   
   if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    # not using reporter partition here
+    r <- gsub("reporter_iso=", "", r)
+    
     query <- query %>% 
       filter(reporter_iso == r)
   }
   
   if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
     r2 <- multiple_reporters(r)
+    # not using reporter partition here
+    r2 <- gsub("reporter_iso=", "", r2)
     
     query <- query %>% 
       filter(reporter_iso %in% r2)
@@ -480,12 +490,17 @@ function(y = NULL, r = NULL) {
     filter(year == y)
   
   if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    # not using reporter partition here
+    r <- gsub("reporter_iso=", "", r)
+    
     query <- query %>% 
       filter(reporter_iso == r)
   }
   
   if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
     r2 <- multiple_reporters(r)
+    # not using reporter partition here
+    r2 <- gsub("reporter_iso=", "", r2)
     
     query <- query %>% 
       filter(reporter_iso %in% r2)
