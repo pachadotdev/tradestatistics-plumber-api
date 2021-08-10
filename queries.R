@@ -404,8 +404,7 @@ function(y = NULL, r = NULL) {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
-      reporter_iso = remove_hive(reporter_iso)
+      year = remove_hive(year)
     ) %>% 
     select(year, reporter_iso, everything())
     
@@ -449,8 +448,7 @@ function(y = NULL, r = NULL) {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
-      reporter_iso = remove_hive(reporter_iso)
+      year = remove_hive(year)
     ) %>% 
     select(year, reporter_iso, everything())
   
@@ -494,8 +492,7 @@ function(y = NULL, r = NULL) {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
-      reporter_iso = remove_hive(reporter_iso)
+      year = remove_hive(year)
     ) %>% 
     select(year, reporter_iso, everything())
   
