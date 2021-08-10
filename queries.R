@@ -732,10 +732,10 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
 # Year range --------------------------------------------------------------
 
 #* Minimum and maximum years with available data
-#* @get /years
+#* @get /year_range
 
 function() {
-  tibble(min_year = min_year(), max_year = max_year())
+  tibble(year = c(min_year(), max_year()))
 }
 
 # Available tables --------------------------------------------------------
