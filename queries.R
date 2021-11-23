@@ -8,56 +8,46 @@ library(dplyr)
 # Arrow datasets ----------------------------------------------------------
 
 d_yrpc <- open_dataset(
-  "../hs92-visualization/yrpc",
+  "../hs12-visualization/yrpc",
   partitioning = c("year", "reporter_iso")
 )
 
 d_yrp <- open_dataset(
-  "../hs92-visualization/yrp",
+  "../hs12-visualization/yrp",
   partitioning = c("year", "reporter_iso")
 )
 
 d_yrc <- open_dataset(
-  "../hs92-visualization/yrc",
+  "../hs12-visualization/yrc",
   partitioning = c("year", "reporter_iso")
 )
 
-d_yr_communities <- open_dataset(
-  "../hs92-visualization/yr-communities",
-  partitioning = c("year")
-)
-
 d_yr_groups <- open_dataset(
-  "../hs92-visualization/yr-groups",
+  "../hs12-visualization/yr-groups",
   partitioning = c("year")
 )
 
 d_yr <- open_dataset(
-  "../hs92-visualization/yr",
+  "../hs12-visualization/yr",
   partitioning = c("year")
 )
 
 d_yc <- open_dataset(
-  "../hs92-visualization/yc",
+  "../hs12-visualization/yc",
   partitioning = c("year")
 )
 
 # Static data -------------------------------------------------------------
 
 d_countries <- bind_rows(
-  read_parquet("../hs92-visualization/attributes/countries.parquet"),
+  read_parquet("../hs12-visualization/attributes/countries.parquet"),
   read_parquet("aliases/countries.parquet")
 )
 
 d_commodities <- bind_rows(
-  read_parquet("../hs92-visualization/attributes/commodities.parquet"),
+  read_parquet("../hs12-visualization/attributes/commodities.parquet"),
   read_parquet("aliases/commodities.parquet")
 )
-
-d_commodities_shortnames <- read_parquet("../hs92-visualization/attributes/commodities_shortnames.parquet") %>% 
-  select(-commodity_fullname_english)
-
-d_communities <- read_parquet("../hs92-visualization/attributes/communities.parquet")
 
 countries <- function() {
   return(d_countries)
@@ -65,14 +55,6 @@ countries <- function() {
 
 commodities <- function() {
   return(d_commodities)
-}
-
-commodities_shortnames <- function() {
-  return(d_commodities_shortnames)
-}
-
-commodities_communities <- function() {
-  return(d_communities)  
 }
 
 # create vectors by continent to filter by using meta variables like americas, africa, etc
@@ -152,7 +134,7 @@ check_partner <- function(p) {
 }
 
 check_commodity <- function(c) {
-  if (!nchar(c) <= 4 | !c %in% commodities()$commodity_code) {
+  if (!nchar(c) <= 6 | !c %in% commodities()$commodity_code) {
     return("The specified commodity code is not a valid string. Read the documentation: tradestatistics.io")
   } else {
     return(c)
@@ -242,7 +224,7 @@ no_data <- function(table, y = NULL, r = NULL, p = NULL, c = NULL) {
 # Available years in the DB -----------------------------------------------
 
 min_year <- function() {
-  return(1962)
+  return(2002)
 }
 
 max_year <- function() {
@@ -323,16 +305,6 @@ function(y = NULL) {
 
 function() { commodities() }
 
-#* Echo back the result of a query on commodities_shortnames table
-#* @get /commodities_shortnames
-
-function() { commodities_shortnames() }
-
-#* Echo back the result of a query on communities table
-#* @get /commodities_communities
-
-function() { commodities_communities() }
-
 # YC ----------------------------------------------------------------------
 
 #* Echo back the result of a query on yc table
@@ -342,7 +314,7 @@ function() { commodities_communities() }
 
 function(y = NULL, c = "all") {
   y <- as.integer(y)
-  c <- clean_num_input(c, 1, 4)
+  c <- clean_num_input(c, 1, 6)
   
   y <- check_year(y)
   c <- check_commodity(c)
@@ -422,56 +394,6 @@ function(y = NULL, r = NULL) {
   return(data)
 }
 
-# YR-Communities ----------------------------------------------------------
-
-#* Echo back the result of a query on yrc-communities table
-#* @param y Year
-#* @param r Reporter ISO
-#* @get /yr-communities
-
-function(y = NULL, r = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  
-  query <- d_yr_communities %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    # not using reporter partition here
-    r <- gsub("reporter_iso=", "", r)
-    
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    # not using reporter partition here
-    r2 <- gsub("reporter_iso=", "", r2)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = remove_hive(year),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yr", y, r)
-  }
-  
-  return(data)
-}
-
 # YR-Groups ---------------------------------------------------------------
 
 #* Echo back the result of a query on yr-groups table
@@ -533,7 +455,7 @@ function(y = NULL, r = NULL) {
 function(y = NULL, r = NULL, c = "all") {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
-  c <- clean_num_input(c, 1, 4)
+  c <- clean_num_input(c, 1, 6)
   
   y <- check_year(y)
   r <- check_reporter(r)
@@ -673,7 +595,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 4)
   p <- clean_char_input(p, 1, 4)
-  c <- clean_num_input(c, 1, 4)
+  c <- clean_num_input(c, 1, 6)
   
   y <- check_year(y)
   r <- check_reporter(r)
@@ -765,13 +687,10 @@ function() {
       "reporters",
       "partners",
       "commodities",
-      "commodities_shortnames",
-      "commodities_communities",
       "yrpc",
       "yrp",
       "yrc",
       "yr",
-      "yr-communities",
       "yr-groups",
       "yc",
       "years"
@@ -781,21 +700,17 @@ function() {
       "Reporters for a given year",
       "Partners for a given year",
       "Commodities metadata",
-      "Commodities short names",
-      "Commodities communities",
       "Reporter-Partner trade at commodity level (Year, Reporter, Partner and Commodity Code)",
       "Reporter-Partner trade at aggregated level (Year, Reporter and Partner)",
       "Reporter trade at commodity level (Year, Reporter and Commodity Code)",
       "Reporter trade at aggregated level (Year and Reporter)",
-      "Reporter trade at commodity community level (Year, Reporter and Commodity Community) (22 communities)",
       "Reporter trade at commodity group level (Year, Reporter and Commodity Group) (99 groups)",
       "Commodity trade at detailed level (Year and Commodity Code)",
       "Minimum and maximum years with available data"
     ),
     source = c(
       rep("UN Comtrade (with modifications)",3),
-      rep("Center for International Development at Harvard University (with modifications)", 2),
-      rep("Open Trade Statistics",9)
+      rep("Open Trade Statistics",8)
     )
   )
 }
