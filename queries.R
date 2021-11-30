@@ -193,7 +193,7 @@ no_data <- function(table, y = NULL, r = NULL, p = NULL, c = NULL) {
     )
   }
   
-  if (table == "yrc") {
+  if (any(table %in% c("yrc","tariffs"))) {
     d <- tibble(
       year = remove_hive(y),
       reporter_iso = remove_hive(r),
@@ -214,6 +214,13 @@ no_data <- function(table, y = NULL, r = NULL, p = NULL, c = NULL) {
     d <- tibble(
       year = remove_hive(y),
       commodity_code = c,
+      observation = "No data available for these filtering parameters"
+    )
+  }
+  
+  if (table == "rtas") {
+    d <- tibble(
+      year = remove_hive(y),
       observation = "No data available for these filtering parameters"
     )
   }
@@ -334,11 +341,11 @@ function(y = NULL, c = "all") {
   
   data <- query %>% 
     collect() %>% 
-    mutate(year = remove_hive(year)) %>% 
+    mutate(year = as.integer(remove_hive(year))) %>% 
     select(year, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yc", y, c)
+    data <- no_data("yc", y = y, c = c)
   }
   
   return(data)
@@ -381,14 +388,14 @@ function(y = NULL, r = NULL) {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
+      year = as.integer(remove_hive(year)),
       reporter_iso = remove_hive(reporter_iso)
     ) %>% 
     select(year, reporter_iso, everything())
     
   
   if (nrow(data) == 0) {
-    data <- no_data("yr", y, r)
+    data <- no_data("yr", y = y, r = r)
   }
   
   return(data)
@@ -431,14 +438,14 @@ function(y = NULL, r = NULL) {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
+      year = as.integer(remove_hive(year)),
       reporter_iso = remove_hive(reporter_iso)
     ) %>% 
     select(year, reporter_iso, everything())
   
   
   if (nrow(data) == 0) {
-    data <- no_data("yr", y, r)
+    data <- no_data("yr", y = y, r = r)
   }
   
   return(data)
@@ -468,7 +475,7 @@ function(y = NULL, r = NULL, c = "all") {
       commodity_code = c,
       observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
     )
-    
+
     return(data)
   }
   
@@ -500,13 +507,13 @@ function(y = NULL, r = NULL, c = "all") {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
+      year = as.integer(remove_hive(year)),
       reporter_iso = remove_hive(reporter_iso)
     ) %>% 
     select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yrc", y, r, c)
+    data <- no_data("yrc", y = y, r = r, c = c)
   }
   
   return(data)
@@ -529,16 +536,16 @@ function(y = NULL, r = NULL, p = NULL) {
   r <- check_reporter(r)
   p <- check_partner(p)
   
-  # if (all(c(remove_hive(r) , p, c) == "all")) {
-  #   data <- tibble(
-  #     year = remove_hive(y),
-  #     reporter_iso = remove_hive(r),
-  #     partner_iso = p,
-  #     observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-  #   )
-  #   
-  #   return(data)
-  # }
+  if (all(c(remove_hive(r) , p, c) == "all")) {
+    data <- tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      partner_iso = p,
+      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+    )
+
+    return(data)
+  }
   
   query <- d_yrp %>% 
     filter(year == y)
@@ -570,13 +577,13 @@ function(y = NULL, r = NULL, p = NULL) {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
+      year = as.integer(remove_hive(year)),
       reporter_iso = remove_hive(reporter_iso)
     ) %>% 
     select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yrp", y, r, p)
+    data <- no_data("yrp", y = y, r = r, p = p)
   }
   
   return(data)
@@ -610,7 +617,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
       commodity_code = c,
       observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
     )
-    
+
     return(data)
   }
   
@@ -654,13 +661,98 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   data <- query %>% 
     collect() %>% 
     mutate(
-      year = remove_hive(year),
+      year = as.integer(remove_hive(year)),
       reporter_iso = remove_hive(reporter_iso)
     ) %>% 
     select(year, reporter_iso, everything())
   
   if (nrow(data) == 0) {
-    data <- no_data("yrpc", y, r, p, c)
+    data <- no_data("yrpc", y = y, r = r, p = p, c = c)
+  }
+  
+  return(data)
+}
+
+# RTAs --------------------------------------------------------------------
+
+#* Echo back the result of a query on rtas table
+#* @param y Year
+#* @get /rtas
+
+function(y = NULL) {
+  y <- as.integer(y)
+  y <- check_year(y)
+
+  data <- open_dataset(
+    "../rtas-and-tariffs/rtas/",
+    partitioning = "year"
+  ) %>% 
+    filter(year == y) %>% 
+    collect() %>% 
+    mutate(year = as.integer(remove_hive(year)))
+  
+  if (nrow(data) == 0) {
+    data <- no_data("rtas", y = y, c = c)
+  }
+  
+  return(data)
+}
+
+# Tariffs -----------------------------------------------------------------
+
+#* Echo back the result of a query on tariffs table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param c Commodity code
+#* @get /tariffs
+
+function(y = NULL, r = NULL, c = NULL) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  c <- clean_num_input(c, 1, 6)
+  
+  y <- check_year(y)
+  r <- check_reporter(r)
+  c <- check_commodity(c)
+
+  query <- open_dataset(
+    "../rtas-and-tariffs/mfn/",
+    partitioning = c("year", "reporter_iso")
+  ) %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
+  }
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
+    
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
+  }
+  
+  if (c != "all" & nchar(c) != 2) {
+    query <- query %>% 
+      filter(commodity_code == c)
+  }
+  
+  if (c != "all" & nchar(c) == 2) {
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
+  }
+  
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = as.integer(remove_hive(year)),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, everything())
+  
+  if (nrow(data) == 0) {
+    data <- no_data("tariffs", y = y, r = r, c = c)
   }
   
   return(data)
@@ -693,7 +785,9 @@ function() {
       "yr",
       "yr-groups",
       "yc",
-      "years"
+      "years",
+      "rtas",
+      "tariffs"
     ),
     description = c(
       "Countries metadata",
@@ -706,11 +800,15 @@ function() {
       "Reporter trade at aggregated level (Year and Reporter)",
       "Reporter trade at commodity group level (Year, Reporter and Commodity Group) (99 groups)",
       "Commodity trade at detailed level (Year and Commodity Code)",
-      "Minimum and maximum years with available data"
+      "Minimum and maximum years with available data",
+      "Regional Trade Agreements per pair of countries and year",
+      "Most Favoured Nation tarrifs (Year, Reporter and Commodity Code)"
     ),
     source = c(
       rep("UN Comtrade (with modifications)",3),
-      rep("Open Trade Statistics",8)
+      rep("Open Trade Statistics",8),
+      "Design of Trade Agreements (DESTA) Database",
+      "World Integrated Trade Solution"
     )
   )
 }
