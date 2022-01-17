@@ -164,7 +164,7 @@ check_partner <- function(p) {
 }
 
 check_commodity <- function(c) {
-  if (!nchar(c) <= 6 | !c %in% commodities()$commodity_code) {
+  if (!nchar(c) <= 6 | !c %in% c(commodities()$commodity_code)) {
     return("The specified commodity code is not a valid string. Read the documentation: tradestatistics.io")
   } else {
     return(c)
@@ -256,6 +256,351 @@ no_data <- function(table, y = NULL, r = NULL, p = NULL, c = NULL) {
   }
   
   return(d)
+}
+
+# Data functions ----------------------------------------------------------
+
+yc <- function(y, c, d) {
+  y <- as.integer(y)
+  c <- clean_num_input(c, 1, 6)
+  
+  y <- check_year(y)
+  c <- check_commodity(c)
+  
+  query <- d %>% 
+    filter(year == y)
+  
+  if (c != "all" & nchar(c) != 2) {
+    query <- query %>% 
+      filter(commodity_code == c)
+  }
+  
+  if (c != "all" & nchar(c) == 2) {
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
+  }
+  
+  data <- query %>% 
+    collect() %>% 
+    mutate(year = as.integer(remove_hive(year))) %>% 
+    select(year, everything())
+  
+  if (nrow(data) == 0) {
+    data <- no_data("yc", y = y, c = c)
+  }
+  
+  return(data)
+}
+
+yr <- function(y, r, d) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  
+  y <- check_year(y)
+  r <- check_reporter(r)
+  
+  query <- d %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    # not using reporter partition here
+    r <- gsub("reporter_iso=", "", r)
+    
+    query <- query %>% 
+      filter(reporter_iso == r)
+  }
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
+    # not using reporter partition here
+    r2 <- gsub("reporter_iso=", "", r2)
+    
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
+  }
+  
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = as.integer(remove_hive(year)),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
+  
+  
+  if (nrow(data) == 0) {
+    data <- no_data("yr", y = y, r = r)
+  }
+  
+  return(data)
+}
+
+yrc <- function(y, r, c, d) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  c <- clean_num_input(c, 1, 6)
+  
+  y <- check_year(y)
+  r <- check_reporter(r)
+  c <- check_commodity(c)
+  
+  if (all(c(remove_hive(r) , c) == "all")) {
+    data <- tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      commodity_code = c,
+      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+    )
+    
+    return(data)
+  }
+  
+  query <- d %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
+  }
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
+    
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
+  }
+  
+  if (c != "all" & nchar(c) != 2) {
+    query <- query %>% 
+      filter(commodity_code == c)
+  }
+  
+  if (c != "all" & nchar(c) == 2) {
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
+  }
+  
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = as.integer(remove_hive(year)),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
+  
+  if (nrow(data) == 0) {
+    data <- no_data("yrc", y = y, r = r, c = c)
+  }
+  
+  return(data)
+}
+
+yrp <- function(y, r, p, d) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  p <- clean_char_input(p, 1, 4)
+  
+  y <- check_year(y)
+  r <- check_reporter(r)
+  p <- check_partner(p)
+  
+  if (all(c(remove_hive(r) , p, c) == "all")) {
+    data <- tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      partner_iso = p,
+      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+    )
+    
+    return(data)
+  }
+  
+  query <- d %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
+  }
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
+    
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
+  }
+  
+  if (p != "all" & nchar(p) == 3) {
+    query <- query %>% 
+      filter(partner_iso == p)
+  }
+  
+  if (p != "all" & nchar(p) == 4) {
+    p2 <- multiple_partners(p)
+    
+    query <- query %>% 
+      filter(partner_iso %in% p2)
+  }
+  
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = as.integer(remove_hive(year)),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
+  
+  if (nrow(data) == 0) {
+    data <- no_data("yrp", y = y, r = r, p = p)
+  }
+  
+  return(data)
+}
+
+yrpc <- function(y, r, p, c, d) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  p <- clean_char_input(p, 1, 4)
+  c <- clean_num_input(c, 1, 6)
+  
+  y <- check_year(y)
+  r <- check_reporter(r)
+  p <- check_partner(p)
+  c <- check_commodity(c)
+  
+  if (all(c(remove_hive(r), p , c) == "all")) {
+    data <- tibble(
+      year = remove_hive(y),
+      reporter_iso = remove_hive(r),
+      partner_iso = p,
+      commodity_code = c,
+      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+    )
+    
+    return(data)
+  }
+  
+  query <- d %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
+  }
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
+    
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
+  }
+  
+  if (p != "all" & nchar(p) == 3) {
+    query <- query %>% 
+      filter(partner_iso == p)
+  }
+  
+  if (p != "all" & nchar(p) == 4) {
+    p2 <- multiple_partners(p)
+    
+    query <- query %>% 
+      filter(partner_iso %in% p2)
+  }
+  
+  if (c != "all" & nchar(c) != 2) {
+    query <- query %>% 
+      filter(commodity_code == c)
+  }
+  
+  if (c != "all" & nchar(c) == 2) {
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
+  }
+  
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = as.integer(remove_hive(year)),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, reporter_iso, everything())
+  
+  if (nrow(data) == 0) {
+    data <- no_data("yrpc", y = y, r = r, p = p, c = c)
+  }
+  
+  return(data)
+}
+
+rtas <- function(y) {
+  y <- as.integer(y)
+  y <- check_year(y)
+  
+  data <- open_dataset(
+    "../rtas-and-tariffs/rtas/",
+    partitioning = "year"
+  ) %>% 
+    filter(year == y) %>% 
+    collect() %>% 
+    mutate(year = as.integer(remove_hive(year)))
+  
+  if (nrow(data) == 0) {
+    data <- no_data("rtas", y = y, c = c)
+  }
+  
+  return(data)
+}
+
+tariffs <- function(y, r, c) {
+  y <- as.integer(y)
+  r <- clean_char_input(r, 1, 4)
+  c <- clean_num_input(c, 1, 6)
+  
+  y <- check_year(y)
+  r <- check_reporter(r)
+  c <- check_commodity(c)
+  
+  query <- open_dataset(
+    "../rtas-and-tariffs/mfn/",
+    partitioning = c("year", "reporter_iso")
+  ) %>% 
+    filter(year == y)
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
+    query <- query %>% 
+      filter(reporter_iso == r)
+  }
+  
+  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
+    r2 <- multiple_reporters(r)
+    
+    query <- query %>% 
+      filter(reporter_iso %in% r2)
+  }
+  
+  if (c != "all" & nchar(c) != 2) {
+    query <- query %>% 
+      filter(commodity_code == c)
+  }
+  
+  if (c != "all" & nchar(c) == 2) {
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
+  }
+  
+  data <- query %>% 
+    collect() %>% 
+    mutate(
+      year = as.integer(remove_hive(year)),
+      reporter_iso = remove_hive(reporter_iso)
+    ) %>% 
+    select(year, everything())
+  
+  if (nrow(data) == 0) {
+    data <- no_data("tariffs", y = y, r = r, c = c)
+  }
+  
+  return(data)
 }
 
 # Available years in the DB -----------------------------------------------
@@ -350,35 +695,8 @@ function() { commodities() }
 #* @get /yc
 
 function(y = NULL, c = "all") {
-  y <- as.integer(y)
-  c <- clean_num_input(c, 1, 6)
-  
-  y <- check_year(y)
-  c <- check_commodity(c)
-  
-  query <- d_yc %>% 
-    filter(year == y)
-    
-  if (c != "all" & nchar(c) != 2) {
-    query <- query %>% 
-      filter(commodity_code == c)
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- query %>% 
-      filter(substr(commodity_code, 1, 2) == c)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(year = as.integer(remove_hive(year))) %>% 
-    select(year, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yc", y = y, c = c)
-  }
-  
-  return(data)
+  d <- d_yc
+  yc(y, c, d)
 }
 
 # YC imputed --------------------------------------------------------------
@@ -389,35 +707,8 @@ function(y = NULL, c = "all") {
 #* @get /yc-imputed
 
 function(y = NULL, c = "all") {
-  y <- as.integer(y)
-  c <- clean_num_input(c, 1, 6)
-  
-  y <- check_year(y)
-  c <- check_commodity(c)
-  
-  query <- d_yc_imputed %>% 
-    filter(year == y)
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- query %>% 
-      filter(commodity_code == c)
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- query %>% 
-      filter(substr(commodity_code, 1, 2) == c)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(year = as.integer(remove_hive(year))) %>% 
-    select(year, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yc", y = y, c = c)
-  }
-  
-  return(data)
+  d <- d_yc_imputed
+  yc(y, c, d)
 }
 
 # YR ----------------------------------------------------------------------
@@ -428,46 +719,8 @@ function(y = NULL, c = "all") {
 #* @get /yr
 
 function(y = NULL, r = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  
-  query <- d_yr %>% 
-    filter(year == y)
-
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    # not using reporter partition here
-    r <- gsub("reporter_iso=", "", r)
-    
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    # not using reporter partition here
-    r2 <- gsub("reporter_iso=", "", r2)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-    
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yr", y = y, r = r)
-  }
-  
-  return(data)
+  d <- d_yr
+  yr(y, r, d)
 }
 
 # YR imputed --------------------------------------------------------------
@@ -478,46 +731,8 @@ function(y = NULL, r = NULL) {
 #* @get /yr-imputed
 
 function(y = NULL, r = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  
-  query <- d_yr_imputed %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    # not using reporter partition here
-    r <- gsub("reporter_iso=", "", r)
-    
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    # not using reporter partition here
-    r2 <- gsub("reporter_iso=", "", r2)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yr", y = y, r = r)
-  }
-  
-  return(data)
+  d <- d_yr_imputed
+  yr(y, r, d)
 }
 
 # YR-Groups ---------------------------------------------------------------
@@ -528,46 +743,8 @@ function(y = NULL, r = NULL) {
 #* @get /yr-groups
 
 function(y = NULL, r = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  
-  query <- d_yr_groups %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    # not using reporter partition here
-    r <- gsub("reporter_iso=", "", r)
-    
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    # not using reporter partition here
-    r2 <- gsub("reporter_iso=", "", r2)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yr", y = y, r = r)
-  }
-  
-  return(data)
+  d <- d_yr_groups
+  yr(y, r, d)
 }
 
 # YR-Groups imputed -------------------------------------------------------
@@ -578,46 +755,8 @@ function(y = NULL, r = NULL) {
 #* @get /yr-groups-imputed
 
 function(y = NULL, r = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  
-  query <- d_yr_groups_imputed %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    # not using reporter partition here
-    r <- gsub("reporter_iso=", "", r)
-    
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    # not using reporter partition here
-    r2 <- gsub("reporter_iso=", "", r2)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yr", y = y, r = r)
-  }
-  
-  return(data)
+  d <- d_yr_groups
+  yr(y, r, d)
 }
 
 # YRC ---------------------------------------------------------------------
@@ -629,63 +768,8 @@ function(y = NULL, r = NULL) {
 #* @get /yrc
 
 function(y = NULL, r = NULL, c = "all") {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  c <- clean_num_input(c, 1, 6)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  c <- check_commodity(c)
-  
-  if (all(c(remove_hive(r) , c) == "all")) {
-    data <- tibble(
-      year = remove_hive(y),
-      reporter_iso = remove_hive(r),
-      commodity_code = c,
-      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-    )
-
-    return(data)
-  }
-  
-  query <- d_yrc %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- query %>% 
-      filter(commodity_code == c)
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- query %>% 
-      filter(substr(commodity_code, 1, 2) == c)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yrc", y = y, r = r, c = c)
-  }
-  
-  return(data)
+  d <- d_yrc
+  yrc(y, r, c, d)
 }
 
 # YRC imputed -------------------------------------------------------------
@@ -697,63 +781,8 @@ function(y = NULL, r = NULL, c = "all") {
 #* @get /yrc-imputed
 
 function(y = NULL, r = NULL, c = "all") {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  c <- clean_num_input(c, 1, 6)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  c <- check_commodity(c)
-  
-  if (all(c(remove_hive(r) , c) == "all")) {
-    data <- tibble(
-      year = remove_hive(y),
-      reporter_iso = remove_hive(r),
-      commodity_code = c,
-      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-    )
-    
-    return(data)
-  }
-  
-  query <- d_yrc_imputed %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- query %>% 
-      filter(commodity_code == c)
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- query %>% 
-      filter(substr(commodity_code, 1, 2) == c)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yrc", y = y, r = r, c = c)
-  }
-  
-  return(data)
+  d <- d_yrc_imputed
+  yrc(y, r, c, d)
 }
 
 # YRP ---------------------------------------------------------------------
@@ -765,65 +794,8 @@ function(y = NULL, r = NULL, c = "all") {
 #* @get /yrp
 
 function(y = NULL, r = NULL, p = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  p <- clean_char_input(p, 1, 4)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  p <- check_partner(p)
-  
-  if (all(c(remove_hive(r) , p, c) == "all")) {
-    data <- tibble(
-      year = remove_hive(y),
-      reporter_iso = remove_hive(r),
-      partner_iso = p,
-      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-    )
-
-    return(data)
-  }
-  
-  query <- d_yrp %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  if (p != "all" & nchar(p) == 3) {
-    query <- query %>% 
-      filter(partner_iso == p)
-  }
-  
-  if (p != "all" & nchar(p) == 4) {
-    p2 <- multiple_partners(p)
-    
-    query <- query %>% 
-      filter(partner_iso %in% p2)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yrp", y = y, r = r, p = p)
-  }
-  
-  return(data)
+  d <- d_yrp
+  yrp(y, r, p, d)
 }
 
 # YRP imputed -------------------------------------------------------------
@@ -835,65 +807,8 @@ function(y = NULL, r = NULL, p = NULL) {
 #* @get /yrp-imputed
 
 function(y = NULL, r = NULL, p = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  p <- clean_char_input(p, 1, 4)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  p <- check_partner(p)
-  
-  if (all(c(remove_hive(r) , p, c) == "all")) {
-    data <- tibble(
-      year = remove_hive(y),
-      reporter_iso = remove_hive(r),
-      partner_iso = p,
-      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-    )
-    
-    return(data)
-  }
-  
-  query <- d_yrp_imputed %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  if (p != "all" & nchar(p) == 3) {
-    query <- query %>% 
-      filter(partner_iso == p)
-  }
-  
-  if (p != "all" & nchar(p) == 4) {
-    p2 <- multiple_partners(p)
-    
-    query <- query %>% 
-      filter(partner_iso %in% p2)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yrp", y = y, r = r, p = p)
-  }
-  
-  return(data)
+  d <- d_yrp_imputed
+  yrp(y, r, p, d)
 }
 
 # YRPC --------------------------------------------------------------------
@@ -906,78 +821,8 @@ function(y = NULL, r = NULL, p = NULL) {
 #* @get /yrpc
 
 function(y = NULL, r = NULL, p = NULL, c = "all") {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  p <- clean_char_input(p, 1, 4)
-  c <- clean_num_input(c, 1, 6)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  p <- check_partner(p)
-  c <- check_commodity(c)
-  
-  if (all(c(remove_hive(r), p , c) == "all")) {
-    data <- tibble(
-      year = remove_hive(y),
-      reporter_iso = remove_hive(r),
-      partner_iso = p,
-      commodity_code = c,
-      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-    )
-
-    return(data)
-  }
-  
-  query <- d_yrpc %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  if (p != "all" & nchar(p) == 3) {
-    query <- query %>% 
-      filter(partner_iso == p)
-  }
-  
-  if (p != "all" & nchar(p) == 4) {
-    p2 <- multiple_partners(p)
-    
-    query <- query %>% 
-      filter(partner_iso %in% p2)
-  }
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- query %>% 
-      filter(commodity_code == c)
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- query %>% 
-      filter(substr(commodity_code, 1, 2) == c)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yrpc", y = y, r = r, p = p, c = c)
-  }
-  
-  return(data)
+  d <- d_yrpc
+  yrpc(y, r, p, c, d)
 }
 
 # YRPC imputed ------------------------------------------------------------
@@ -990,78 +835,8 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
 #* @get /yrpc-imputed
 
 function(y = NULL, r = NULL, p = NULL, c = "all") {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  p <- clean_char_input(p, 1, 4)
-  c <- clean_num_input(c, 1, 6)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  p <- check_partner(p)
-  c <- check_commodity(c)
-  
-  if (all(c(remove_hive(r), p , c) == "all")) {
-    data <- tibble(
-      year = remove_hive(y),
-      reporter_iso = remove_hive(r),
-      partner_iso = p,
-      commodity_code = c,
-      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-    )
-    
-    return(data)
-  }
-  
-  query <- d_yrpc_imputed %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  if (p != "all" & nchar(p) == 3) {
-    query <- query %>% 
-      filter(partner_iso == p)
-  }
-  
-  if (p != "all" & nchar(p) == 4) {
-    p2 <- multiple_partners(p)
-    
-    query <- query %>% 
-      filter(partner_iso %in% p2)
-  }
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- query %>% 
-      filter(commodity_code == c)
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- query %>% 
-      filter(substr(commodity_code, 1, 2) == c)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("yrpc", y = y, r = r, p = p, c = c)
-  }
-  
-  return(data)
+  d <- d_yrpc_imputed
+  yrpc(y, r, p, c, d)
 }
 
 # RTAs --------------------------------------------------------------------
@@ -1071,22 +846,7 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
 #* @get /rtas
 
 function(y = NULL) {
-  y <- as.integer(y)
-  y <- check_year(y)
-
-  data <- open_dataset(
-    "../rtas-and-tariffs/rtas/",
-    partitioning = "year"
-  ) %>% 
-    filter(year == y) %>% 
-    collect() %>% 
-    mutate(year = as.integer(remove_hive(year)))
-  
-  if (nrow(data) == 0) {
-    data <- no_data("rtas", y = y, c = c)
-  }
-  
-  return(data)
+  rtas(y)
 }
 
 # Tariffs -----------------------------------------------------------------
@@ -1098,55 +858,7 @@ function(y = NULL) {
 #* @get /tariffs
 
 function(y = NULL, r = NULL, c = NULL) {
-  y <- as.integer(y)
-  r <- clean_char_input(r, 1, 4)
-  c <- clean_num_input(c, 1, 6)
-  
-  y <- check_year(y)
-  r <- check_reporter(r)
-  c <- check_commodity(c)
-
-  query <- open_dataset(
-    "../rtas-and-tariffs/mfn/",
-    partitioning = c("year", "reporter_iso")
-  ) %>% 
-    filter(year == y)
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 3) {
-    query <- query %>% 
-      filter(reporter_iso == r)
-  }
-  
-  if (r != "reporter_iso=all" & nchar(remove_hive(r)) == 4) {
-    r2 <- multiple_reporters(r)
-    
-    query <- query %>% 
-      filter(reporter_iso %in% r2)
-  }
-  
-  if (c != "all" & nchar(c) != 2) {
-    query <- query %>% 
-      filter(commodity_code == c)
-  }
-  
-  if (c != "all" & nchar(c) == 2) {
-    query <- query %>% 
-      filter(substr(commodity_code, 1, 2) == c)
-  }
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(remove_hive(year)),
-      reporter_iso = remove_hive(reporter_iso)
-    ) %>% 
-    select(year, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("tariffs", y = y, r = r, c = c)
-  }
-  
-  return(data)
+  tariffs(y, r, c)
 }
 
 # Year range --------------------------------------------------------------
