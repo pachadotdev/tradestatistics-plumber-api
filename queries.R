@@ -825,6 +825,22 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   yrpc(y, r, p, c, d)
 }
 
+
+# YRPC parquet ------------------------------------------------------------
+
+#* Echo back the result of a query on yrpc table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param p Partner ISO
+#* @param c Commodity code
+#* @serializer parquet
+#* @get /yrpc-parquet
+
+function(y = NULL, r = NULL, p = NULL, c = "all") {
+  d <- d_yrpc
+  yrpc(y, r, p, c, d)
+}
+
 # YRPC imputed ------------------------------------------------------------
 
 #* Echo back the result of a query on yrpc imputed table
@@ -833,6 +849,21 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
 #* @param p Partner ISO
 #* @param c Commodity code
 #* @get /yrpc-imputed
+
+function(y = NULL, r = NULL, p = NULL, c = "all") {
+  d <- d_yrpc_imputed
+  yrpc(y, r, p, c, d)
+}
+
+# YRPC imputed parquet ----------------------------------------------------
+
+#* Echo back the result of a query on yrpc imputed table
+#* @param y Year
+#* @param r Reporter ISO
+#* @param p Partner ISO
+#* @param c Commodity code
+#* @serializer parquet
+#* @get /yrpc-imputed-parquet
 
 function(y = NULL, r = NULL, p = NULL, c = "all") {
   d <- d_yrpc_imputed
