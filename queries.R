@@ -755,7 +755,31 @@ function(y = NULL, r = NULL) {
 #* @get /yr-groups-imputed
 
 function(y = NULL, r = NULL) {
-  d <- d_yr_groups
+  d <- d_yr_groups_imputed
+  yr(y, r, d)
+}
+
+# YR-Sections -------------------------------------------------------------
+
+#* Echo back the result of a query on yr-sections table
+#* @param y Year
+#* @param r Reporter ISO
+#* @get /yr-sections
+
+function(y = NULL, r = NULL) {
+  d <- d_yr_sections
+  yr(y, r, d)
+}
+
+# YR-Sections imputed -----------------------------------------------------
+
+#* Echo back the result of a query on yr-sections imputed table
+#* @param y Year
+#* @param r Reporter ISO
+#* @get /yr-sections-imputed
+
+function(y = NULL, r = NULL) {
+  d <- d_yr_sections_imputed
   yr(y, r, d)
 }
 

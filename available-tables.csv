@@ -15,6 +15,8 @@ yr,Reporter trade at aggregated level (Year and Reporter),Open Trade Statistics
 yr-imputed,"Reporter trade at aggregated level, imputed (Year and Reporter)",Open Trade Statistics
 yr-groups,"Reporter trade at commodity group level (Year, Reporter and Commodity Group) (99 groups)",Open Trade Statistics
 yr-groups-imputed,"Reporter trade at commodity group level, imputed (Year, Reporter and Commodity Group) (99 groups)",Open Trade Statistics
+yr-sections,"Reporter trade at commodity group level (Year, Reporter and Commodity Section) (21 sections)",Open Trade Statistics
+yr-sections-imputed,"Reporter trade at commodity group level, imputed (Year, Reporter and Section Group) (21 sections)",Open Trade Statistics
 yc,Commodity trade at detailed level (Year and Commodity Code),Open Trade Statistics
 yc-imputed,"Commodity trade at detailed level, imputed (Year and Commodity Code)",Open Trade Statistics
 years,Minimum and maximum years with available data,Open Trade Statistics
