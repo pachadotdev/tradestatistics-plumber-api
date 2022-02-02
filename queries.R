@@ -57,6 +57,16 @@ d_yr_groups_imputed <- open_dataset(
   partitioning = c("year")
 )
 
+d_yr_sections <- open_dataset(
+  "../hs12-visualization/yr-sections",
+  partitioning = c("year")
+)
+
+d_yr_sections_imputed <- open_dataset(
+  "../hs12-visualization/yr-sections-imputed",
+  partitioning = c("year")
+)
+
 d_yc <- open_dataset(
   "../hs12-visualization/yc",
   partitioning = c("year")
