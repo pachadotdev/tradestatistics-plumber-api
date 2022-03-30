@@ -34,30 +34,30 @@ d_ysrpc_tc <- open_dataset(
 
 # Data without transportation costs ---------------------------------------
 
-d_yrpc_ntc <- open_dataset(
-  "../hs12-visualization-no-transportation-costs/yrpc",
-  partitioning = schema(year = int32(), reporter_iso = string())
-)
-
-d_yrp_ntc <- open_dataset(
-  "../hs12-visualization-no-transportation-costs/yrp",
-  partitioning = schema(year = int32(), reporter_iso = string())
-)
-
-d_yrc_ntc <- open_dataset(
-  "../hs12-visualization-no-transportation-costs/yrc",
-  partitioning = schema(year = int32(), reporter_iso = string())
-)
-
-d_yr_ntc <- open_dataset(
-  "../hs12-visualization-no-transportation-costs/yr",
-  partitioning = schema(year = int32())
-)
-
-d_ysrpc_ntc <- open_dataset(
-  "../hs12-visualization-no-transportation-costs/ysrpc",
-  partitioning = schema(year = int32(), section_code = string())
-)
+# d_yrpc_ntc <- open_dataset(
+#   "../hs12-visualization-no-transportation-costs/yrpc",
+#   partitioning = schema(year = int32(), reporter_iso = string())
+# )
+# 
+# d_yrp_ntc <- open_dataset(
+#   "../hs12-visualization-no-transportation-costs/yrp",
+#   partitioning = schema(year = int32(), reporter_iso = string())
+# )
+# 
+# d_yrc_ntc <- open_dataset(
+#   "../hs12-visualization-no-transportation-costs/yrc",
+#   partitioning = schema(year = int32(), reporter_iso = string())
+# )
+# 
+# d_yr_ntc <- open_dataset(
+#   "../hs12-visualization-no-transportation-costs/yr",
+#   partitioning = schema(year = int32())
+# )
+# 
+# d_ysrpc_ntc <- open_dataset(
+#   "../hs12-visualization-no-transportation-costs/ysrpc",
+#   partitioning = schema(year = int32(), section_code = string())
+# )
 
 # Static data -------------------------------------------------------------
 
@@ -66,17 +66,17 @@ d_ysrpc_ntc <- open_dataset(
 # Antarctica, Saint Barthelemy, Curacao, Sint Maarten and South Sudan
 # also add aliases and areas
 d_countries <- bind_rows(
-  read_parquet("../hs12-visualization-no-transportation-costs/attributes/countries.parquet"),
+  read_parquet("../hs12-visualization-transportation-costs/attributes/countries.parquet"),
   read_parquet("aliases/countries.parquet")
 ) %>% 
   arrange(country_iso)
 
 d_commodities <- bind_rows(
-  read_parquet("../hs12-visualization-no-transportation-costs/attributes/commodities.parquet"),
+  read_parquet("../hs12-visualization-transportation-costs/attributes/commodities.parquet"),
   read_parquet("aliases/commodities.parquet")
 )
 
-d_sections <- read_parquet("../hs12-visualization-no-transportation-costs/attributes/sections.parquet")
+d_sections <- read_parquet("../hs12-visualization-transportation-costs/attributes/sections.parquet")
 
 countries <- function() {
   return(d_countries)
