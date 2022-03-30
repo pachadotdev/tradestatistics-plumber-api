@@ -290,7 +290,7 @@ yr <- function(y, r, d) {
   
   if (r != "all" & nchar(r) == 4) {
     r2 <- multiple_reporters(r)
-
+    
     query <- query %>% 
       filter(reporter_iso %in% r2)
   }
@@ -499,7 +499,7 @@ ysrpc <- function(y, s, d) {
       section_code = c,
       observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
     )
-
+    
     return(data)
   }
   
@@ -693,14 +693,14 @@ function(y = NULL, r = NULL) {
   yr(y, r, d)
 }
 
-#* Echo back the result of a query on yr table
-#* @param y Year
-#* @param r Reporter ISO
-#* @get /yr_ntc
-function(y = NULL, r = NULL) {
-  d <- d_yr_ntc
-  yr(y, r, d)
-}
+# #* Echo back the result of a query on yr table
+# #* @param y Year
+# #* @param r Reporter ISO
+# #* @get /yr_ntc
+# function(y = NULL, r = NULL) {
+#   d <- d_yr_ntc
+#   yr(y, r, d)
+# }
 
 # YRC ---------------------------------------------------------------------
 
@@ -714,15 +714,15 @@ function(y = NULL, r = NULL, c = "all") {
   yrc(y, r, c, d)
 }
 
-#* Echo back the result of a query on yrc table
-#* @param y Year
-#* @param r Reporter ISO
-#* @param c Commodity code
-#* @get /yrc_ntc
-function(y = NULL, r = NULL, c = "all") {
-  d <- d_yrc_ntc
-  yrc(y, r, c, d)
-}
+# #* Echo back the result of a query on yrc table
+# #* @param y Year
+# #* @param r Reporter ISO
+# #* @param c Commodity code
+# #* @get /yrc_ntc
+# function(y = NULL, r = NULL, c = "all") {
+#   d <- d_yrc_ntc
+#   yrc(y, r, c, d)
+# }
 
 # YRP ---------------------------------------------------------------------
 
@@ -736,15 +736,15 @@ function(y = NULL, r = NULL, p = NULL) {
   yrp(y, r, p, d)
 }
 
-#* Echo back the result of a query on yrp table
-#* @param y Year
-#* @param r Reporter ISO
-#* @param p Partner ISO
-#* @get /yrp_ntc
-function(y = NULL, r = NULL, p = NULL) {
-  d <- d_yrp_ntc
-  yrp(y, r, p, d)
-}
+# #* Echo back the result of a query on yrp table
+# #* @param y Year
+# #* @param r Reporter ISO
+# #* @param p Partner ISO
+# #* @get /yrp_ntc
+# function(y = NULL, r = NULL, p = NULL) {
+#   d <- d_yrp_ntc
+#   yrp(y, r, p, d)
+# }
 
 # YRPC --------------------------------------------------------------------
 
@@ -760,17 +760,17 @@ function(y = NULL, r = NULL, p = NULL, c = "all") {
   yrpc(y, r, p, c, d)
 }
 
-#* Echo back the result of a query on yrpc table
-#* @param y Year
-#* @param r Reporter ISO
-#* @param p Partner ISO
-#* @param c Commodity code
-#* @serializer parquet
-#* @get /yrpc_ntc
-function(y = NULL, r = NULL, p = NULL, c = "all") {
-  d <- d_yrpc_ntc
-  yrpc(y, r, p, c, d)
-}
+# #* Echo back the result of a query on yrpc table
+# #* @param y Year
+# #* @param r Reporter ISO
+# #* @param p Partner ISO
+# #* @param c Commodity code
+# #* @serializer parquet
+# #* @get /yrpc_ntc
+# function(y = NULL, r = NULL, p = NULL, c = "all") {
+#   d <- d_yrpc_ntc
+#   yrpc(y, r, p, c, d)
+# }
 
 # YSRPC -------------------------------------------------------------------
 
@@ -784,15 +784,15 @@ function(y = NULL, s = NULL) {
   ysrpc(y, s, d)
 }
 
-#* Echo back the result of a query on ysrpc table
-#* @param y Year
-#* @param s Section code
-#* @serializer parquet
-#* @get /ysrpc_ntc
-function(y = NULL, s = NULL) {
-  d <- d_ysrpc_ntc
-  ysrpc(y, s, d)
-}
+# #* Echo back the result of a query on ysrpc table
+# #* @param y Year
+# #* @param s Section code
+# #* @serializer parquet
+# #* @get /ysrpc_ntc
+# function(y = NULL, s = NULL) {
+#   d <- d_ysrpc_ntc
+#   ysrpc(y, s, d)
+# }
 
 # RTAs --------------------------------------------------------------------
 
