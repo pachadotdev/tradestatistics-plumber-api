@@ -208,7 +208,7 @@ multiple_partners <- function(p) {
   )
 }
 
-no_data <- function(table, y = NULL, r = NULL, p = NULL, c = NULL, s = NULL) {
+no_data <- function(table, y = NA, r = NA, p = NA, c = NA, s = NA) {
   if (table == "yrpc") {
     d <- tibble(
       year = y,
@@ -632,7 +632,7 @@ function() { countries() }
 #* @param y Year
 #* @get /reporters
 
-function(y = 2019) {
+function(y = NA) {
   y <- as.integer(y)
   
   y <- check_year(y)
@@ -653,7 +653,7 @@ function(y = 2019) {
 #* @param y Year
 #* @get /partners
 
-function(y = 2019) {
+function(y = NA) {
   y <- as.integer(y)
   
   y <- check_year(y)
@@ -688,7 +688,7 @@ function() { commodities() }
 #* @param y Year
 #* @param r Reporter ISO
 #* @get /yr_tc
-function(y = 2019, r = "can") {
+function(y = NA, r = NA) {
   d <- d_yr_tc
   yr(y, r, d)
 }
@@ -697,7 +697,7 @@ function(y = 2019, r = "can") {
 # #* @param y Year
 # #* @param r Reporter ISO
 # #* @get /yr_ntc
-# function(y = NULL, r = NULL) {
+# function(y = NA, r = NA) {
 #   d <- d_yr_ntc
 #   yr(y, r, d)
 # }
@@ -709,7 +709,7 @@ function(y = 2019, r = "can") {
 #* @param r Reporter ISO
 #* @param c Commodity code
 #* @get /yrc_tc
-function(y = 2019, r = "can", c = "all") {
+function(y = NA, r = NA, c = "all") {
   d <- d_yrc_tc
   yrc(y, r, c, d)
 }
@@ -719,7 +719,7 @@ function(y = 2019, r = "can", c = "all") {
 # #* @param r Reporter ISO
 # #* @param c Commodity code
 # #* @get /yrc_ntc
-# function(y = NULL, r = NULL, c = "all") {
+# function(y = NA, r = NA, c = "all") {
 #   d <- d_yrc_ntc
 #   yrc(y, r, c, d)
 # }
@@ -731,7 +731,7 @@ function(y = 2019, r = "can", c = "all") {
 #* @param r Reporter ISO
 #* @param p Partner ISO
 #* @get /yrp_tc
-function(y = 2019, r = "can", p = "usa") {
+function(y = NA, r = NA, p = NA) {
   d <- d_yrp_tc
   yrp(y, r, p, d)
 }
@@ -741,7 +741,7 @@ function(y = 2019, r = "can", p = "usa") {
 # #* @param r Reporter ISO
 # #* @param p Partner ISO
 # #* @get /yrp_ntc
-# function(y = NULL, r = NULL, p = NULL) {
+# function(y = NA, r = NA, p = NA) {
 #   d <- d_yrp_ntc
 #   yrp(y, r, p, d)
 # }
@@ -755,7 +755,7 @@ function(y = 2019, r = "can", p = "usa") {
 #* @param c Commodity code
 #* @serializer parquet
 #* @get /yrpc_tc
-function(y = 2019, r = "can", p = "usa", c = "all") {
+function(y = NA, r = NA, p = NA, c = "all") {
   d <- d_yrpc_tc
   yrpc(y, r, p, c, d)
 }
@@ -767,7 +767,7 @@ function(y = 2019, r = "can", p = "usa", c = "all") {
 # #* @param c Commodity code
 # #* @serializer parquet
 # #* @get /yrpc_ntc
-# function(y = NULL, r = NULL, p = NULL, c = "all") {
+# function(y = NA, r = NA, p = NA, c = "all") {
 #   d <- d_yrpc_ntc
 #   yrpc(y, r, p, c, d)
 # }
@@ -779,7 +779,7 @@ function(y = 2019, r = "can", p = "usa", c = "all") {
 #* @param s Section code
 #* @serializer parquet
 #* @get /ysrpc_tc
-function(y = 2019, s = "01") {
+function(y = NA, s = NA) {
   d <- d_ysrpc_tc
   ysrpc(y, s, d)
 }
@@ -789,7 +789,7 @@ function(y = 2019, s = "01") {
 # #* @param s Section code
 # #* @serializer parquet
 # #* @get /ysrpc_ntc
-# function(y = NULL, s = NULL) {
+# function(y = NA, s = NA) {
 #   d <- d_ysrpc_ntc
 #   ysrpc(y, s, d)
 # }
@@ -800,7 +800,7 @@ function(y = 2019, s = "01") {
 #* @param y Year
 #* @get /rtas
 
-function(y = 2019) {
+function(y = NA) {
   rtas(y)
 }
 
@@ -812,7 +812,7 @@ function(y = 2019) {
 #* @param c Commodity code
 #* @get /tariffs
 
-function(y = 2019, r = "can", c = "010121") {
+function(y = NA, r = NA, c = NA) {
   tariffs(y, r, c)
 }
 
