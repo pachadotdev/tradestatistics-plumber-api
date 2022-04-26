@@ -1,93 +1,36 @@
 # queries.R
 
-# Packages ----------------------------------------------------------------
-
-library(arrow)
 library(dplyr)
 
-# Data with transportation costs ------------------------------------------
-
-d_yrpc_tc <- open_dataset(
-  "../hs12-visualization-transportation-costs/yrpc",
-  partitioning = schema(year = int32(), reporter_iso = string())
+con <- pool::dbPool(
+  drv = RPostgres::Postgres(),
+  dbname = "tradestatistics",
+  host = "tradestatistics.io",
+  user = Sys.getenv("TRADESTATISTICS_SQL_USR"),
+  password = Sys.getenv("TRADESTATISTICS_SQL_PWD")
 )
-
-d_yrp_tc <- open_dataset(
-  "../hs12-visualization-transportation-costs/yrp",
-  partitioning = schema(year = int32(), reporter_iso = string())
-)
-
-d_yrc_tc <- open_dataset(
-  "../hs12-visualization-transportation-costs/yrc",
-  partitioning = schema(year = int32(), reporter_iso = string())
-)
-
-d_yr_tc <- open_dataset(
-  "../hs12-visualization-transportation-costs/yr",
-  partitioning = schema(year = int32())
-)
-
-d_ysrpc_tc <- open_dataset(
-  "../hs12-visualization-transportation-costs/ysrpc",
-  partitioning = schema(year = int32(), section_code = string())
-)
-
-# Data without transportation costs ---------------------------------------
-
-# d_yrpc_ntc <- open_dataset(
-#   "../hs12-visualization-no-transportation-costs/yrpc",
-#   partitioning = schema(year = int32(), reporter_iso = string())
-# )
-# 
-# d_yrp_ntc <- open_dataset(
-#   "../hs12-visualization-no-transportation-costs/yrp",
-#   partitioning = schema(year = int32(), reporter_iso = string())
-# )
-# 
-# d_yrc_ntc <- open_dataset(
-#   "../hs12-visualization-no-transportation-costs/yrc",
-#   partitioning = schema(year = int32(), reporter_iso = string())
-# )
-# 
-# d_yr_ntc <- open_dataset(
-#   "../hs12-visualization-no-transportation-costs/yr",
-#   partitioning = schema(year = int32())
-# )
-# 
-# d_ysrpc_ntc <- open_dataset(
-#   "../hs12-visualization-no-transportation-costs/ysrpc",
-#   partitioning = schema(year = int32(), section_code = string())
-# )
 
 # Static data -------------------------------------------------------------
 
-# fix Aruba, Roumania and Timor-Leste ISO codes
-# and add countries present in UN COMTRADE kast data
-# Antarctica, Saint Barthelemy, Curacao, Sint Maarten and South Sudan
-# also add aliases and areas
-d_countries <- bind_rows(
-  read_parquet("../hs12-visualization-transportation-costs/attributes/countries.parquet"),
-  read_parquet("aliases/countries.parquet")
-) %>% 
-  arrange(country_iso)
-
-d_commodities <- bind_rows(
-  read_parquet("../hs12-visualization-transportation-costs/attributes/commodities.parquet"),
-  read_parquet("aliases/commodities.parquet")
-)
-
-d_sections <- read_parquet("../hs12-visualization-transportation-costs/attributes/sections.parquet")
-
 countries <- function() {
-  return(d_countries)
+  return(
+    tbl(con, "countries") %>% 
+      collect()
+  )
 }
 
 commodities <- function() {
-  return(d_commodities)
+  return(
+    tbl(con, "commodities") %>% 
+      collect()
+  )
 }
 
 sections <- function() {
-  return(d_sections)
+  return(
+    tbl(con, "sections") %>% 
+      collect()
+  )
 }
 
 # create vectors by continent to filter by using meta variables like americas, africa, etc
@@ -296,13 +239,7 @@ yr <- function(y, r, d) {
   }
   
   data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(year),
-      reporter_iso = reporter_iso
-    ) %>% 
-    select(year, reporter_iso, everything())
-  
+    collect()
   
   if (nrow(data) == 0) {
     data <- no_data("yr", y = y, r = r)
@@ -346,12 +283,7 @@ yrc <- function(y, r, c, d) {
   }
   
   data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(year),
-      reporter_iso = reporter_iso
-    ) %>% 
-    select(year, reporter_iso, everything())
+    collect()
   
   if (nrow(data) == 0) {
     data <- no_data("yrc", y = y, r = r, c = c)
@@ -397,12 +329,7 @@ yrp <- function(y, r, p, d) {
   }
   
   data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(year),
-      reporter_iso = reporter_iso
-    ) %>% 
-    select(year, reporter_iso, everything())
+    collect()
   
   if (nrow(data) == 0) {
     data <- no_data("yrp", y = y, r = r, p = p)
@@ -472,12 +399,7 @@ yrpc <- function(y, r, p, c, d) {
   }
   
   data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(year),
-      reporter_iso = reporter_iso
-    ) %>% 
-    select(year, reporter_iso, everything())
+    collect()
   
   if (nrow(data) == 0) {
     data <- no_data("yrpc", y = y, r = r, p = p, c = c)
@@ -486,51 +408,47 @@ yrpc <- function(y, r, p, c, d) {
   return(data)
 }
 
-ysrpc <- function(y, s, d) {
-  y <- as.integer(y)
-  s <- clean_num_input(s, 1, 3)
-  
-  y <- check_year(y)
-  s <- check_section(s)
-  
-  if (s == "all") {
-    data <- tibble(
-      year = y,
-      section_code = c,
-      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
-    )
-    
-    return(data)
-  }
-  
-  query <- d %>% 
-    filter(year == y, section_code == s)
-  
-  data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(year)
-    ) %>% 
-    select(year, section_code, everything())
-  
-  if (nrow(data) == 0) {
-    data <- no_data("ysrpc", y = y, s = s)
-  }
-  
-  return(data)
-}
+# ysrpc <- function(y, s, d) {
+#   y <- as.integer(y)
+#   s <- clean_num_input(s, 1, 3)
+#   
+#   y <- check_year(y)
+#   s <- check_section(s)
+#   
+#   if (s == "all") {
+#     data <- tibble(
+#       year = y,
+#       section_code = c,
+#       observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+#     )
+#     
+#     return(data)
+#   }
+#   
+#   query <- d %>% 
+#     filter(year == y, section_code == s)
+#   
+#   data <- query %>% 
+#     collect() %>% 
+#     mutate(
+#       year = as.integer(year)
+#     ) %>% 
+#     select(year, section_code, everything())
+#   
+#   if (nrow(data) == 0) {
+#     data <- no_data("ysrpc", y = y, s = s)
+#   }
+#   
+#   return(data)
+# }
 
 rtas <- function(y) {
   y <- as.integer(y)
   y <- check_year(y)
   
-  data <- open_dataset(
-    "../rtas-and-tariffs/rtas/",
-    partitioning = "year"
-  ) %>% 
+  data <- tbl(con, "rtas") %>% 
     filter(year == y) %>% 
-    collect() %>% 
-    mutate(year = as.integer(year))
+    collect()
   
   if (nrow(data) == 0) {
     data <- no_data("rtas", y = y, c = c)
@@ -548,10 +466,7 @@ tariffs <- function(y, r, c) {
   r <- check_reporter(r)
   c <- check_commodity(c)
   
-  query <- open_dataset(
-    "../rtas-and-tariffs/mfn/",
-    partitioning = c("year", "reporter_iso")
-  ) %>% 
+  query <- tbl(con, "tariffs") %>% 
     filter(year == y)
   
   if (r != "all" & (nchar(r) == 3 | grepl("e-", r))) {
@@ -577,12 +492,7 @@ tariffs <- function(y, r, c) {
   }
   
   data <- query %>% 
-    collect() %>% 
-    mutate(
-      year = as.integer(year),
-      reporter_iso = reporter_iso
-    ) %>% 
-    select(year, everything())
+    collect()
   
   if (nrow(data) == 0) {
     data <- no_data("tariffs", y = y, r = r, c = c)
@@ -594,11 +504,11 @@ tariffs <- function(y, r, c) {
 # Available years in the DB -----------------------------------------------
 
 min_year <- function() {
-  return(1980)
+  return(2002)
 }
 
 max_year <- function() {
-  return(2019)
+  return(2020)
 }
 
 # Title and description ---------------------------------------------------
@@ -637,12 +547,12 @@ function(y = NA) {
   
   y <- check_year(y)
   
-  data <- d_yr %>% 
+  data <- tbl(con, "yr") %>% 
     filter(year == y) %>% 
     select(reporter_iso) %>% 
-    collect() %>% 
-    mutate(reporter_iso = reporter_iso) %>% 
-    arrange(reporter_iso)
+    distinct() %>% 
+    arrange(reporter_iso) %>% 
+    collect()
   
   return(data)
 }
@@ -658,12 +568,12 @@ function(y = NA) {
   
   y <- check_year(y)
   
-  data <- d_yrp %>% 
+  data <- tbl(con, "yrp") %>% 
     filter(year == y) %>% 
     select(partner_iso) %>% 
-    collect() %>% 
     distinct() %>% 
-    arrange(partner_iso)
+    arrange(partner_iso) %>% 
+    collect()
   
   return(data)
 }
@@ -687,20 +597,11 @@ function() { commodities() }
 #* Echo back the result of a query on yr table
 #* @param y Year
 #* @param r Reporter ISO
-#* @get /yr_tc
+#* @get /yr
 function(y = NA, r = NA) {
-  d <- d_yr_tc
+  d <- tbl(con, "yr")
   yr(y, r, d)
 }
-
-# #* Echo back the result of a query on yr table
-# #* @param y Year
-# #* @param r Reporter ISO
-# #* @get /yr_ntc
-# function(y = NA, r = NA) {
-#   d <- d_yr_ntc
-#   yr(y, r, d)
-# }
 
 # YRC ---------------------------------------------------------------------
 
@@ -708,21 +609,11 @@ function(y = NA, r = NA) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param c Commodity code
-#* @get /yrc_tc
+#* @get /yrc
 function(y = NA, r = NA, c = "all") {
-  d <- d_yrc_tc
+  d <- tbl(con, "yrc")
   yrc(y, r, c, d)
 }
-
-# #* Echo back the result of a query on yrc table
-# #* @param y Year
-# #* @param r Reporter ISO
-# #* @param c Commodity code
-# #* @get /yrc_ntc
-# function(y = NA, r = NA, c = "all") {
-#   d <- d_yrc_ntc
-#   yrc(y, r, c, d)
-# }
 
 # YRP ---------------------------------------------------------------------
 
@@ -730,21 +621,11 @@ function(y = NA, r = NA, c = "all") {
 #* @param y Year
 #* @param r Reporter ISO
 #* @param p Partner ISO
-#* @get /yrp_tc
+#* @get /yrp
 function(y = NA, r = NA, p = NA) {
-  d <- d_yrp_tc
+  d <- tbl(con, "yrp")
   yrp(y, r, p, d)
 }
-
-# #* Echo back the result of a query on yrp table
-# #* @param y Year
-# #* @param r Reporter ISO
-# #* @param p Partner ISO
-# #* @get /yrp_ntc
-# function(y = NA, r = NA, p = NA) {
-#   d <- d_yrp_ntc
-#   yrp(y, r, p, d)
-# }
 
 # YRPC --------------------------------------------------------------------
 
@@ -754,43 +635,21 @@ function(y = NA, r = NA, p = NA) {
 #* @param p Partner ISO
 #* @param c Commodity code
 #* @serializer parquet
-#* @get /yrpc_tc
+#* @get /yrpc
 function(y = NA, r = NA, p = NA, c = "all") {
-  d <- d_yrpc_tc
+  d <- tbl(con, "yrpc")
   yrpc(y, r, p, c, d)
 }
 
-# #* Echo back the result of a query on yrpc table
-# #* @param y Year
-# #* @param r Reporter ISO
-# #* @param p Partner ISO
-# #* @param c Commodity code
-# #* @serializer parquet
-# #* @get /yrpc_ntc
-# function(y = NA, r = NA, p = NA, c = "all") {
-#   d <- d_yrpc_ntc
-#   yrpc(y, r, p, c, d)
-# }
-
 # YSRPC -------------------------------------------------------------------
-
-#* Echo back the result of a query on ysrpc table
-#* @param y Year
-#* @param s Section code
-#* @serializer parquet
-#* @get /ysrpc_tc
-function(y = NA, s = NA) {
-  d <- d_ysrpc_tc
-  ysrpc(y, s, d)
-}
 
 # #* Echo back the result of a query on ysrpc table
 # #* @param y Year
 # #* @param s Section code
 # #* @serializer parquet
-# #* @get /ysrpc_ntc
+# #* @get /ysrpc
 # function(y = NA, s = NA) {
-#   d <- d_ysrpc_ntc
+#   d <- d_ysrpc_tc
 #   ysrpc(y, s, d)
 # }
 
