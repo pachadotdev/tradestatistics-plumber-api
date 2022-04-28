@@ -3,7 +3,7 @@
 library(dplyr)
 
 # Read credentials from file excluded in .gitignore
-readRenviron("/tradestatistics")
+readRenviron("/tradestatistics/plumber-api")
 
 con <- pool::dbPool(
   drv = RPostgres::Postgres(),
