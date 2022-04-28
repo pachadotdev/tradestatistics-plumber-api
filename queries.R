@@ -8,7 +8,7 @@ readRenviron("/tradestatistics")
 con <- pool::dbPool(
   drv = RPostgres::Postgres(),
   dbname = "tradestatistics",
-  host = "tradestatistics.io",
+  host = "localhost",
   user = Sys.getenv("TRADESTATISTICS_SQL_USR"),
   password = Sys.getenv("TRADESTATISTICS_SQL_PWD")
 )
