@@ -3,7 +3,7 @@
 library(dplyr)
 
 # Read credentials from file excluded in .gitignore
-readRenviron("/tradestatistics/")
+readRenviron("/tradestatistics")
 
 con <- pool::dbPool(
   drv = RPostgres::Postgres(),
@@ -25,6 +25,13 @@ countries <- function() {
 commodities <- function() {
   return(
     tbl(con, "commodities") %>% 
+      collect()
+  )
+}
+
+distances <- function() {
+  return(
+    tbl(con, "distances") %>% 
       collect()
   )
 }
@@ -538,6 +545,14 @@ function() {
 #* @get /countries
 #* @serializer csv
 function() { countries() }
+
+
+# Distances ---------------------------------------------------------------
+
+#* Echo back the result of a query on countries table
+#* @get /countries
+#* @serializer csv
+function() { distances() }
 
 # Reporters ---------------------------------------------------------------
 
