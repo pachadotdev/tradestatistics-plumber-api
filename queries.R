@@ -672,7 +672,7 @@ function() { commodities_short() }
 #* @get /yc
 #* @serializer parquet
 function(y = NA, c = NA) {
-  d <- tbl(con, "yr")
+  d <- tbl(con, "yc")
   yc(y, c, d)
 }
 
