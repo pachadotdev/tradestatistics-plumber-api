@@ -618,7 +618,7 @@ function() { sections() }
 function() { commodities() }
 
 #* Echo back the result of a query on commodities table
-#* @get /commodities
+#* @get /commodities_short
 #* @serializer parquet
 function() { commodities_short() }
 
