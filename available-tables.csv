@@ -1,5 +1,6 @@
 table,description,source
-commodities,Commodities metadata,Open Trade Statistics
+commodities,"Commodities metadata (HS codes, 6 digits long)",Open Trade Statistics
+commodities_short,"Commodities metadata (HS codes, 4 digits long)",Open Trade Statistics
 countries,Countries metadata,UN Comtrade (with modifications)
 distances,"Distance between countries, alongside continuity, common language and if the countries were the same once",CEPII (with modifications)
 partners,Partners for a given year,UN Comtrade (with modifications)
