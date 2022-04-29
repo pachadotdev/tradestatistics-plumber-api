@@ -10,6 +10,7 @@ sections_colors,Colors for sections (i.e. useful to visualize data),Open Trade S
 rtas,Regional Trade Agreements per pair of countries and year,Design of Trade Agreements (DESTA) Database
 tariffs,"Most Favoured Nation tarrifs (Year, Reporter and Commodity Code)",World Integrated Trade Solution
 years,Minimum and maximum years with available data,Open Trade Statistics
+yc,"Commodity trade at aggregated level (Year and Commodity), raw trade flows (i.e. with transportation costs)",Open Trade Statistics
 yr,"Reporter trade at aggregated level (Year and Reporter), raw trade flows (i.e. with transportation costs)",Open Trade Statistics
 yrc,"Reporter trade at commodity level (Year, Reporter and Commodity Code), raw trade flows (i.e. with transportation costs)",Open Trade Statistics
 yrp,"Reporter-Partner trade at aggregated level (Year, Reporter and Partner), raw trade flows (i.e. with transportation costs)",Open Trade Statistics

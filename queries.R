@@ -240,6 +240,36 @@ no_data <- function(table, y = NA, r = NA, p = NA, c = NA, s = NA) {
 
 # Data functions ----------------------------------------------------------
 
+yc <- function(y, c, d) {
+  y <- as.integer(y)
+  c <- clean_num_input(c, 1, 6)
+  
+  y <- check_year(y)
+  c <- check_commodity(c)
+  
+  query <- d %>% 
+    filter(year == y)
+  
+  if (c != "all" & nchar(c) != 2) {
+    query <- query %>% 
+      filter(commodity_code == c)
+  }
+  
+  if (c != "all" & nchar(c) == 2) {
+    query <- query %>% 
+      filter(substr(commodity_code, 1, 2) == c)
+  }
+  
+  data <- query %>% 
+    collect()
+  
+  if (nrow(data) == 0) {
+    data <- no_data("yc", y = y, c = c)
+  }
+  
+  return(data)
+}
+
 yr <- function(y, r, d) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 5)
@@ -633,6 +663,18 @@ function() { commodities() }
 #* @get /commodities_short
 #* @serializer parquet
 function() { commodities_short() }
+
+# YC ----------------------------------------------------------------------
+
+#* Echo back the result of a query on yc table
+#* @param y Year
+#* @param c Commodity Code
+#* @get /yc
+#* @serializer parquet
+function(y = NA, c = NA) {
+  d <- tbl(con, "yr")
+  yc(y, c, d)
+}
 
 # YR ----------------------------------------------------------------------
 
