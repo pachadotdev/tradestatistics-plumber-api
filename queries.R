@@ -50,6 +50,13 @@ sections <- function() {
   )
 }
 
+sections_colors <- function() {
+  return(
+    tbl(con, "sections_colors") %>% 
+      collect()
+  )
+}
+
 # create vectors by continent to filter by using meta variables like americas, africa, etc
 
 ## Africa
@@ -609,6 +616,11 @@ function(y = NA) {
 #* @get /sections
 #* @serializer parquet
 function() { sections() }
+
+#* Echo back the result of a query on commodities table
+#* @get /sections_colors
+#* @serializer parquet
+function() { sections_colors() }
 
 # Commodities ----------------------------------------------------------------
 

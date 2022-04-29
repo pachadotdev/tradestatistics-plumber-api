@@ -1,10 +1,12 @@
 table,description,source
-commodities,"Commodities metadata (HS codes, 6 digits long)",Open Trade Statistics
-commodities_short,"Commodities metadata (HS codes, 4 digits long)",Open Trade Statistics
+commodities,"Commodities metadata (HS codes, 6 digits long)",UN Comtrade (with modifications)
+commodities_short,"Commodities metadata (HS codes, 4 digits long)",UN Comtrade (with modifications)
 countries,Countries metadata,UN Comtrade (with modifications)
 distances,"Distance between countries, alongside continuity, common language and if the countries were the same once",CEPII (with modifications)
 partners,Partners for a given year,UN Comtrade (with modifications)
 reporters,Reporters for a given year,UN Comtrade (with modifications)
+sections,Sections metadata (HS codes),UN Comtrade (with modifications)
+sections_colors,Colors for sections (i.e. useful to visualize data),Open Trade Statistics
 rtas,Regional Trade Agreements per pair of countries and year,Design of Trade Agreements (DESTA) Database
 tariffs,"Most Favoured Nation tarrifs (Year, Reporter and Commodity Code)",World Integrated Trade Solution
 years,Minimum and maximum years with available data,Open Trade Statistics
