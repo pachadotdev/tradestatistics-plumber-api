@@ -5,7 +5,7 @@ Description=Open Trade Statistics API
 ExecStart=/usr/bin/Rscript -e "api <- plumber::plumb('/tradestatistics/plumber-api/queries.R'); api$run(port=4949, host='127.0.0.1')"
 Restart=on-abnormal
 WorkingDirectory=/tradestatistics/plumber-api
-StandardError=file:/tradestatistics/log/tradestatistics-api/error.log
+StandardError=file:/tradestatistics/log/api-error.log
 
 [Install]
 WantedBy=multi-user.target
