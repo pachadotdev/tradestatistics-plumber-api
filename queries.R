@@ -594,7 +594,7 @@ function() { countries() }
 # Distances ---------------------------------------------------------------
 
 #* Echo back the result of a query on countries table
-#* @get /countries
+#* @get /distances
 #* @serializer parquet
 function() { distances() }
 
