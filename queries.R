@@ -511,14 +511,28 @@ rtas <- function(y) {
   return(data)
 }
 
-tariffs <- function(y, r, c) {
+tariffs <- function(y, r, p, c) {
   y <- as.integer(y)
   r <- clean_char_input(r, 1, 5)
+  p <- clean_char_input(p, 1, 5)
   c <- clean_num_input(c, 1, 6)
   
   y <- check_year(y)
   r <- check_reporter(r)
+  p <- check_partner(p)
   c <- check_commodity(c)
+  
+  if (r == "all" & p == "all") {
+    data <- tibble(
+      year = y,
+      reporter_iso = r,
+      partner_iso = p,
+      commodity_code = c,
+      observation = "You are better off downloading the compressed datasets from docs.tradestatistics.io/accesing-the-data.html"
+    )
+    
+    return(data)
+  }
   
   query <- tbl(con, "tariffs") %>% 
     filter(year == y)
@@ -533,6 +547,18 @@ tariffs <- function(y, r, c) {
     
     query <- query %>% 
       filter(reporter_iso %in% r2)
+  }
+  
+  if (p != "all" & (nchar(p) == 3 | grepl("e-", p))) {
+    query <- query %>% 
+      filter(partner_iso == p)
+  }
+  
+  if (p != "all" & nchar(p) == 4) {
+    p2 <- multiple_partners(p)
+    
+    query <- query %>% 
+      filter(partner_iso %in% p2)
   }
   
   if (c != "all" & nchar(c) != 2) {
@@ -755,11 +781,12 @@ function(y = NA) {
 #* Echo back the result of a query on tariffs table
 #* @param y Year
 #* @param r Reporter ISO
+#* @param p Partner ISO
 #* @param c Commodity code
 #* @get /tariffs
 #* @serializer parquet
-function(y = NA, r = NA, c = NA) {
-  tariffs(y, r, c)
+function(y = NA, r = NA, p = NA, c = NA) {
+  tariffs(y, r, p, c)
 }
 
 # Year range --------------------------------------------------------------
