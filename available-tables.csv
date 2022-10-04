@@ -9,7 +9,7 @@ sections,Sections metadata (HS codes),Based on UN Comtrade
 sections_colors,Colors for sections (i.e. useful to visualize data),Based on UN Comtrade
 rtas,Regional Trade Agreements per pair of countries and year,Based on Design of Trade Agreements Database (DESTA)
 tariffs,"Most Favoured Nation or Preferential Rate tariffs (Year, Reporter, Partner and Commodity Code). This table excludes non-traded products between country pairs and zero rates.",Based on World Integrated Trade Solution (WITS)
-years,Minimum and maximum years with available data,Based on UN Comtrade
+year_range,Minimum and maximum years with available data,Based on UN Comtrade
 yc,"Commodity trade at aggregated level (Year and Commodity)",Based on UN Comtrade
 yr,"Reporter trade at aggregated level (Year and Reporter)",Based on UN Comtrade
 yrc,"Reporter trade at commodity level (Year, Reporter and Commodity Code)",Based on UN Comtrade
