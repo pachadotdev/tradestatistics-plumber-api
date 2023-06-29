@@ -613,7 +613,6 @@ function() {
 
 #* Echo back the result of a query on countries table
 #* @get /countries
-#* @serializer parquet
 function() { countries() }
 
 
@@ -621,7 +620,6 @@ function() { countries() }
 
 #* Echo back the result of a query on countries table
 #* @get /distances
-#* @serializer parquet
 function() { distances() }
 
 # Reporters ---------------------------------------------------------------
@@ -629,7 +627,6 @@ function() { distances() }
 #* Echo back the result of a query on yr table
 #* @param y Year
 #* @get /reporters
-#* @serializer parquet
 function(y = NA) {
   y <- as.integer(y)
   
@@ -650,7 +647,6 @@ function(y = NA) {
 #* Echo back the result of a query on yrp table
 #* @param y Year
 #* @get /partners
-#* @serializer parquet
 function(y = NA) {
   y <- as.integer(y)
   
@@ -670,24 +666,20 @@ function(y = NA) {
 
 #* Echo back the result of a query on commodities table
 #* @get /sections
-#* @serializer parquet
 function() { sections() }
 
 #* Echo back the result of a query on commodities table
 #* @get /sections_colors
-#* @serializer parquet
 function() { sections_colors() }
 
 # Commodities ----------------------------------------------------------------
 
 #* Echo back the result of a query on commodities table
 #* @get /commodities
-#* @serializer parquet
 function() { commodities() }
 
 #* Echo back the result of a query on commodities table
 #* @get /commodities_short
-#* @serializer parquet
 function() { commodities_short() }
 
 # YC ----------------------------------------------------------------------
@@ -696,7 +688,6 @@ function() { commodities_short() }
 #* @param y Year
 #* @param c Commodity Code
 #* @get /yc
-#* @serializer parquet
 function(y = NA, c = NA) {
   d <- tbl(con, "yc")
   yc(y, c, d)
@@ -708,7 +699,6 @@ function(y = NA, c = NA) {
 #* @param y Year
 #* @param r Reporter ISO
 #* @get /yr
-#* @serializer parquet
 function(y = NA, r = NA) {
   d <- tbl(con, "yr")
   yr(y, r, d)
@@ -721,7 +711,6 @@ function(y = NA, r = NA) {
 #* @param r Reporter ISO
 #* @param c Commodity code
 #* @get /yrc
-#* @serializer parquet
 function(y = NA, r = NA, c = "all") {
   d <- tbl(con, "yrc")
   yrc(y, r, c, d)
@@ -734,7 +723,6 @@ function(y = NA, r = NA, c = "all") {
 #* @param r Reporter ISO
 #* @param p Partner ISO
 #* @get /yrp
-#* @serializer parquet
 function(y = NA, r = NA, p = NA) {
   d <- tbl(con, "yrp")
   yrp(y, r, p, d)
@@ -748,7 +736,6 @@ function(y = NA, r = NA, p = NA) {
 #* @param p Partner ISO
 #* @param c Commodity code
 #* @get /yrpc
-#* @serializer parquet
 function(y = NA, r = NA, p = NA, c = "all") {
   d <- tbl(con, "yrpc")
   yrpc(y, r, p, c, d)
@@ -759,7 +746,6 @@ function(y = NA, r = NA, p = NA, c = "all") {
 # #* Echo back the result of a query on ysrpc table
 # #* @param y Year
 # #* @param s Section code
-# #* @serializer parquet
 # #* @get /ysrpc
 # function(y = NA, s = NA) {
 #   d <- d_ysrpc_tc
@@ -784,7 +770,6 @@ function(y = NA) {
 #* @param p Partner ISO
 #* @param c Commodity code
 #* @get /tariffs
-#* @serializer parquet
 function(y = NA, r = NA, p = NA, c = NA) {
   tariffs(y, r, p, c)
 }
