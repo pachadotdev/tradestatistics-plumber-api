@@ -2,13 +2,7 @@ table,description,source
 commodities,"Commodities metadata (HS codes, 6 digits long)",Based on UN Comtrade
 commodities_short,"Commodities metadata (HS codes, 4 digits long)",Based on UN Comtrade
 countries,Countries metadata,Based on UN Comtrade
-distances,"Distance between countries, alongside continuity, common language and if the countries were the same once",Based on CEPII Gravity Database
-partners,Partners for a given year,Based on UN Comtrade
-reporters,Reporters for a given year,Based on UN Comtrade
 sections,Sections metadata (HS codes),Based on UN Comtrade
-sections_colors,Colors for sections (i.e. useful to visualize data),Based on UN Comtrade
-rtas,Regional Trade Agreements per pair of countries and year,Based on Design of Trade Agreements Database (DESTA)
-tariffs,"Most Favoured Nation or Preferential Rate tariffs (Year, Reporter, Partner and Commodity Code). This table excludes non-traded products between country pairs and zero rates.",Based on World Integrated Trade Solution (WITS)
 year_range,Minimum and maximum years with available data,Based on UN Comtrade
 yc,"Commodity trade at aggregated level (Year and Commodity)",Based on UN Comtrade
 yr,"Reporter trade at aggregated level (Year and Reporter)",Based on UN Comtrade
