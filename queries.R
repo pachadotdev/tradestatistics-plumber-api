@@ -20,6 +20,11 @@ countries <- function() {
     collect()
 }
 
+countries_colors <- function() {
+  tbl(con, "countries_colors") %>%
+    collect()
+}
+
 commodities <- function() {
   tbl(con, "commodities") %>%
     collect()
@@ -27,11 +32,6 @@ commodities <- function() {
 
 commodities_short <- function() {
   tbl(con, "commodities_short") %>%
-    collect()
-}
-
-distances <- function() {
-  tbl(con, "distances") %>%
     collect()
 }
 
@@ -445,12 +445,10 @@ function() {
   countries()
 }
 
-# Distances ---------------------------------------------------------------
-
-#* Echo back the result of a query on countries table
-#* @get /distances
+#* Echo back the result of a query on commodities table
+#* @get /countries_colors
 function() {
-  distances()
+  countries_colors()
 }
 
 # Reporters ---------------------------------------------------------------

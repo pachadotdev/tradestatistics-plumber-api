@@ -2,7 +2,9 @@ table,description,source
 commodities,"Commodities metadata (HS codes, 6 digits long)",Based on UN Comtrade
 commodities_short,"Commodities metadata (HS codes, 4 digits long)",Based on UN Comtrade
 countries,Countries metadata,Based on UN Comtrade
+countries_colors,Countries colors,Open Trade Statistics
 sections,Sections metadata (HS codes),Based on UN Comtrade
+sections_colors,Sections colors (HS codes),Open Trade Statistics
 year_range,Minimum and maximum years with available data,Based on UN Comtrade
 yc,"Commodity trade at aggregated level (Year and Commodity)",Based on UN Comtrade
 yr,"Reporter trade at aggregated level (Year and Reporter)",Based on UN Comtrade
